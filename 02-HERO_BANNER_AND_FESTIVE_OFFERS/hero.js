@@ -78,7 +78,7 @@ export function initHero(containerId) {
           <div class="relative w-full aspect-[4/5] sm:max-w-md lg:max-w-full overflow-hidden border border-[var(--color-border-subtle)] bg-stone-100 shadow-2xl group rounded-[var(--border-radius-sm)]">
             <!-- Campaign Graphic -->
             <img 
-              src="./02-HERO_BANNER_AND_FESTIVE_OFFERS/hero_campaign.png" 
+              src="/hero-model.jpg" 
               alt="FashionPalette Campaign Editorial" 
               class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
             />
