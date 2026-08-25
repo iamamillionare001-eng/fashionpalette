@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- 
+  ======================================================================
+    FOUNDER CONFIGURATION: MAIN STORE SHELL
+    ------------------------------------------------------------------
+    This file serves as the main structural outline of your shop.
+    We import theme configurations and layout blocks dynamically.
+    For colors and name configurations, edit files under /07-STORE_SETTINGS_AND_THEME_COLORS/.
+  ======================================================================
+  -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FashionPalette - Luxury Atelier Storefront</title>
+  <meta name="description" content="Discover hand-crafted bespoke apparel at FashionPalette. Ultra-luxury e-commerce client.">
+  
+  <!-- Master Stylesheet (Variables & Custom Utilities) -->
+  <link rel="stylesheet" href="./07-STORE_SETTINGS_AND_THEME_COLORS/theme_colors.css">
+
+  <!-- Tailwind CSS Play CDN (v3.4.1) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Tailwind Theme Configurations (Synchronized with Custom CSS Tokens) -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            // Mapping custom HSL/HEX variables configured in theme_colors.css
+            brand: {
+              bg: 'var(--color-bg-primary)',
+              text: 'var(--color-text-primary)',
+              card: 'var(--color-surface-card)',
+              border: 'var(--color-border-subtle)',
+              cta: 'var(--color-cta-fill)',
+              ctatext: 'var(--color-cta-text)',
+              gold: 'var(--color-accent-gold)'
+            }
+          },
+          fontFamily: {
+            // Mapping luxury Google Fonts loaded in theme_colors.css
+            sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+            serif: ['"Cormorant Garamond"', '"Playfair Display"', 'serif'],
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-brand-bg text-brand-text min-h-screen flex flex-col font-sans selection:bg-brand-gold selection:text-white">
+
+  <!-- Global Sticky Website Header -->
+  <div id="header-container"></div>
+
+  <!-- Responsive Layout Main Wrap 
+       - Mobile (< 768px): px-4 fluid margins
+       - Tablet & Desktop (>= 768px to 1440px): max-w-7xl centered container
+       - Ultra-wide (>= 1440px): max-w-[1440px] centered constraints with negative spaces
+  -->
+  <main class="w-full flex-grow mt-20">
+    
+    <!-- 02 - HERO BANNER & STATUS PANEL -->
+    <div id="hero-container"></div>
+
+    <!-- 03 - PRODUCT CARDS & IMAGE GALLERY -->
+    <div id="gallery-container"></div>
+
+    <!-- 04 - SECURE CHECKOUT & COD FORM -->
+    <div id="checkout-container"></div>
+
+    <!-- 05 - ADMIN CONTROL PANEL & PRODUCT LOGS -->
+    <div id="admin-container"></div>
+
+    <!-- 06 - SHIPMENT TRACKING & LEDGER SUMMARY -->
+    <div id="ledger-container"></div>
+
+  </main>
+
+  <!-- Elegant Luxury Footer -->
+  <footer class="bg-stone-900 text-stone-300 py-12 border-t border-stone-850">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
+      <div class="flex items-center justify-center space-x-2">
+        <span class="font-serif text-lg tracking-[0.2em] text-white uppercase">FashionPalette</span>
+        <span class="text-brand-gold font-light">Atelier</span>
+      </div>
+      <p class="text-[10px] text-stone-500 uppercase tracking-widest leading-relaxed">
+        &copy; 2026 FashionPalette Luxury Group. All Rights Reserved. Private Concierge Services.
+      </p>
+    </div>
+  </footer>
+
+  <!-- Main JS ESM Bootstrap Entrypoint -->
+  <script type="module" src="./main.js"></script>
+
+</body>
+</html>
