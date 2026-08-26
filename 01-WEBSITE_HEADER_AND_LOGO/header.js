@@ -8,12 +8,38 @@ import { storeConfig } from '../07-STORE_SETTINGS_AND_THEME_COLORS/store_config.
 
 /* FOUNDER CONFIG: Add, remove, or rename menu links here */
 export const NAVIGATION_LINKS = [
-  { label: "New Arrivals", link: "#arrivals" },
-  { label: "Festive Edit", link: "#festive" },
-  { label: "Pret-a-Porter", link: "#pret-a-porter" },
-  { label: "Silk & Cottons", link: "#silk-cottons" },
-  { label: "Accessories", link: "#accessories" },
-  { label: "Our Story", link: "#story" }
+  { 
+    label: "Women", 
+    link: "#women", 
+    description: "Ethnic, Sarees & Western Couture" 
+  },
+  { 
+    label: "Men", 
+    link: "#men", 
+    description: "Designer Kurtas & Modern Wear" 
+  },
+  { 
+    label: "Couple's Edit", 
+    link: "#couples-edit", 
+    badge: "Trending", 
+    description: "Curated Coordinated & Twinned Ensembles" 
+  },
+  { 
+    label: "Kids", 
+    link: "#kids", 
+    description: "Festive & Casual Wear for Boys & Girls" 
+  },
+  { 
+    label: "Elders & Comfort", 
+    link: "#elders", 
+    description: "Soft Pure Cottons & Relaxed Fits" 
+  },
+  { 
+    label: "Accessories", 
+    link: "#accessories", 
+    badge: "Coming Soon", 
+    description: "Jewelry, Stoles & Footwear" 
+  }
 ];
 
 export function initHeader(containerId) {
@@ -22,6 +48,18 @@ export function initHeader(containerId) {
 
   const firstInitial = storeConfig.logoInitials ? storeConfig.logoInitials[0] : 'F';
   const secondInitial = storeConfig.logoInitials ? storeConfig.logoInitials[1] : 'P';
+
+  // Helper function to render elegant badges on desktop navigation
+  function getDesktopBadge(item) {
+    if (!item.badge) return '';
+    if (item.label === "Couple's Edit") {
+      return `<span class="ml-1 px-1.5 py-0.5 text-[8px] leading-none uppercase tracking-widest bg-[#C5A880] text-white rounded-full font-semibold inline-block align-middle select-none">Trending</span>`;
+    }
+    if (item.label === "Accessories") {
+      return `<span class="ml-1 px-1.5 py-0.5 text-[8px] leading-none uppercase tracking-widest bg-stone-200 text-stone-500 rounded-full font-medium inline-block align-middle select-none">Soon</span>`;
+    }
+    return `<span class="ml-1 px-1.5 py-0.5 text-[8px] leading-none uppercase tracking-widest bg-[#C5A880] text-white rounded-full font-semibold inline-block align-middle select-none">${item.badge}</span>`;
+  }
 
   // Render Header HTML Structure
   container.innerHTML = `
@@ -51,13 +89,14 @@ export function initHeader(containerId) {
         </div>
 
         <!-- Desktop Navigation Links (Left align) -->
-        <nav class="hidden md:flex space-x-6 lg:space-x-8 items-center flex-1">
+        <nav class="hidden md:flex space-x-4 lg:space-x-6 items-center flex-1">
           ${NAVIGATION_LINKS.map(item => `
             <a 
               href="${item.link}" 
-              class="relative py-2 text-[11px] uppercase tracking-widest text-[#1A1A1A] hover:text-[#C5A880] transition-colors duration-300 font-medium group"
+              class="relative py-2 text-[11px] uppercase tracking-widest text-[#1A1A1A] hover:text-[#C5A880] transition-colors duration-300 font-medium group flex items-center"
             >
-              ${item.label}
+              <span>${item.label}</span>
+              ${getDesktopBadge(item)}
               <span class="absolute bottom-0 left-0 w-full h-[1px] bg-[#1A1A1A] scale-x-0 origin-right transition-transform duration-300 ease-out group-hover:scale-x-100 group-hover:origin-left"></span>
             </a>
           `).join('')}
@@ -175,14 +214,28 @@ export function initHeader(containerId) {
 
       <!-- Drawer Links Container (Scrollable) -->
       <nav class="flex-1 overflow-y-auto py-6 px-4 space-y-1">
-        ${NAVIGATION_LINKS.map(item => `
-          <a 
-            href="${item.link}" 
-            class="mobile-drawer-link flex items-center h-12 px-4 text-xs uppercase tracking-widest text-[#1A1A1A] hover:text-[#C5A880] hover:bg-[#FFFFFF]/50 transition-colors duration-300 font-semibold border-b border-[#E5E3DF]/30"
-          >
-            ${item.label}
-          </a>
-        `).join('')}
+        ${NAVIGATION_LINKS.map(item => {
+          let badgeHtml = '';
+          if (item.badge) {
+            const badgeClass = item.label === 'Accessories' ? 'bg-stone-200 text-stone-500' : 'bg-[#C5A880] text-white';
+            const badgeText = item.label === 'Accessories' ? 'Soon' : item.badge;
+            badgeHtml = `<span class="px-2 py-0.5 text-[8px] leading-none uppercase tracking-widest rounded-full font-medium select-none ${badgeClass}">${badgeText}</span>`;
+          }
+          return `
+            <a 
+              href="${item.link}" 
+              class="mobile-drawer-link flex flex-col justify-center min-h-[56px] py-2.5 px-4 text-xs text-[#1A1A1A] hover:bg-[#FFFFFF]/50 transition-colors duration-300 border-b border-[#E5E3DF]/30"
+            >
+              <div class="flex items-center justify-between w-full">
+                <span class="uppercase tracking-widest font-semibold">${item.label}</span>
+                ${badgeHtml}
+              </div>
+              <span class="text-[9px] tracking-wider text-[#5A5A5A] mt-1 normal-case font-normal leading-tight">
+                ${item.description}
+              </span>
+            </a>
+          `;
+        }).join('')}
       </nav>
 
       <!-- Drawer Footer -->
