@@ -59,7 +59,7 @@ export function initHeader(containerId) {
       ` : ''}
 
       <!-- Main Navigation Bar -->
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between transition-all duration-300" id="nav-container">
+      <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 md:px-6 h-20 flex md:grid md:grid-cols-12 items-center justify-between md:justify-normal transition-all duration-300" id="nav-container">
         
         <!-- Mobile Menu Toggle Button Container (visible on mobile, hidden on desktop >= 768px) -->
         <div class="flex items-center justify-start flex-1 md:hidden">
@@ -75,11 +75,11 @@ export function initHeader(containerId) {
         </div>
 
         <!-- Desktop Navigation Links (Left align) -->
-        <nav class="hidden md:flex items-center space-x-5 lg:space-x-7 whitespace-nowrap flex-1">
+        <nav class="hidden md:flex col-span-5 items-center justify-start gap-4 lg:gap-6 whitespace-nowrap text-[11px] lg:text-xs tracking-widest">
           ${NAVIGATION_LINKS.map(item => `
             <a 
               href="${item.link}" 
-              class="relative py-2 text-xs uppercase tracking-widest text-[#1A1A1A]/80 hover:text-[#1A1A1A] transition-colors duration-300 font-medium group"
+              class="relative py-2 uppercase text-inherit text-[#1A1A1A]/80 hover:text-[#1A1A1A] transition-colors duration-300 font-medium group"
             >
               <span>${item.label}</span>
               <span class="absolute bottom-0 left-0 w-full h-[1px] bg-[#1A1A1A] scale-x-0 origin-right transition-transform duration-300 ease-out group-hover:scale-x-100 group-hover:origin-left"></span>
@@ -88,7 +88,7 @@ export function initHeader(containerId) {
         </nav>
 
         <!-- Brand Logo & Monogram Badge (Centered) -->
-        <a href="#" id="brand-logo" class="flex items-center space-x-3 justify-center flex-initial group">
+        <a href="#" id="brand-logo" class="flex flex-row md:flex-col items-center justify-center text-center space-x-3 md:space-x-0 md:gap-2 group flex-initial md:col-span-2 md:mx-auto">
           <!-- Beautiful Custom Interlocking FP Monogram Logo -->
           <div class="relative w-12 h-12 flex items-center justify-center transition-transform duration-500 group-hover:scale-105">
             <svg width="48" height="48" viewBox="0 0 100 100" class="w-full h-full text-[#1A1A1A]">
@@ -102,7 +102,7 @@ export function initHeader(containerId) {
             </svg>
           </div>
           
-          <div class="flex flex-col items-start leading-none select-none">
+          <div class="flex flex-col items-start md:items-center leading-none select-none">
             <span class="font-serif text-xl tracking-[0.22em] uppercase font-light text-[#1A1A1A] leading-tight hidden min-[480px]:inline-block">
               ${storeConfig.storeName}
             </span>
@@ -113,7 +113,7 @@ export function initHeader(containerId) {
         </a>
 
         <!-- Interactive Utilities (Right align) -->
-        <div class="flex items-center space-x-2 sm:space-x-4 flex-1 justify-end">
+        <div class="flex items-center space-x-2 sm:space-x-4 justify-end flex-1 md:flex-none md:col-span-5 md:space-x-0 md:gap-5">
           <!-- Currency Indicator Pill -->
           <div class="hidden sm:flex items-center border border-[#E5E3DF] px-2.5 py-1 rounded-full text-[10px] tracking-wider uppercase font-semibold text-[#1A1A1A] bg-[#FFFFFF]/50 hover:bg-[#FFFFFF] transition-all cursor-default select-none shadow-xs">
             <span>${storeConfig.currency} ${storeConfig.currencyCode}</span>
