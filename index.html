@@ -50,45 +50,48 @@
 </head>
 <body class="bg-brand-bg text-brand-text min-h-screen flex flex-col font-sans selection:bg-brand-gold selection:text-white">
 
-  <!-- Global Sticky Website Header -->
-  <div id="header-container"></div>
+  <!-- Top-Level Storefront View container -->
+  <div id="storefront-view" class="w-full min-h-screen flex flex-col">
+    <!-- Global Sticky Website Header -->
+    <div id="header-container"></div>
 
-  <!-- Responsive Layout Main Wrap 
-       - Mobile (< 768px): px-4 fluid margins
-       - Tablet & Desktop (>= 768px to 1440px): max-w-7xl centered container
-       - Ultra-wide (>= 1440px): max-w-[1440px] centered constraints with negative spaces
-  -->
-  <main class="w-full flex-grow mt-20">
-    
-    <!-- 02 - HERO BANNER & STATUS PANEL -->
-    <div id="hero-container"></div>
+    <!-- Responsive Layout Main Wrap 
+         - Mobile (< 768px): px-4 fluid margins
+         - Tablet & Desktop (>= 768px to 1440px): max-w-7xl centered container
+         - Ultra-wide (>= 1440px): max-w-[1440px] centered constraints with negative spaces
+    -->
+    <main class="w-full flex-grow mt-20">
+      
+      <!-- 02 - HERO BANNER & STATUS PANEL -->
+      <div id="hero-container"></div>
 
-    <!-- 03 - PRODUCT CARDS & IMAGE GALLERY -->
-    <div id="gallery-container"></div>
+      <!-- 03 - PRODUCT CARDS & IMAGE GALLERY -->
+      <div id="gallery-container"></div>
 
-    <!-- 04 - SECURE CHECKOUT & COD FORM -->
-    <div id="checkout-container"></div>
+      <!-- 04 - SECURE CHECKOUT & COD FORM -->
+      <div id="checkout-container"></div>
 
-    <!-- 05 - ADMIN CONTROL PANEL & PRODUCT LOGS -->
-    <div id="admin-container" class="hidden"></div>
+      <!-- 06 - SHIPMENT TRACKING & LEDGER SUMMARY -->
+      <div id="ledger-container"></div>
 
-    <!-- 06 - SHIPMENT TRACKING & LEDGER SUMMARY -->
-    <div id="ledger-container"></div>
+    </main>
 
-  </main>
-
-  <!-- Elegant Luxury Footer -->
-  <footer class="bg-stone-900 text-stone-300 py-12 border-t border-stone-850">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
-      <div class="flex items-center justify-center space-x-2">
-        <span class="font-serif text-lg tracking-[0.2em] text-white uppercase">FashionPalette</span>
-        <span class="text-brand-gold font-light">Atelier</span>
+    <!-- Elegant Luxury Footer -->
+    <footer class="bg-stone-900 text-stone-300 py-12 border-t border-stone-850 w-full mt-auto">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
+        <div class="flex items-center justify-center space-x-2">
+          <span class="font-serif text-lg tracking-[0.2em] text-white uppercase">FashionPalette</span>
+          <span class="text-brand-gold font-light">Atelier</span>
+        </div>
+        <p class="text-[10px] text-stone-500 uppercase tracking-widest leading-relaxed">
+          &copy; 2026 FashionPalette Luxury Group. All Rights Reserved. <span id="founder-trigger" class="cursor-pointer hover:text-brand-gold hover:underline transition-all duration-300">Private Concierge Services</span>.
+        </p>
       </div>
-      <p class="text-[10px] text-stone-500 uppercase tracking-widest leading-relaxed">
-        &copy; 2026 FashionPalette Luxury Group. All Rights Reserved. <span id="founder-trigger" class="cursor-pointer hover:text-brand-gold hover:underline transition-all duration-300">Private Concierge Services</span>.
-      </p>
-    </div>
-  </footer>
+    </footer>
+  </div>
+
+  <!-- Top-Level Standalone Isolated Admin View container -->
+  <div id="admin-view" class="hidden min-h-screen bg-[#F9F8F6]"></div>
 
   <!-- Main JS ESM Bootstrap Entrypoint -->
   <script type="module" src="./main.js"></script>

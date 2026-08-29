@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initHero('hero-container');
   initGallery('gallery-container');
   initCheckout('checkout-container');
-  initAdmin('admin-container');
+  initAdmin('admin-view');
   initLedger('ledger-container');
   
   console.log("FashionPalette Brand Base Architecture Initialized Successfully.");

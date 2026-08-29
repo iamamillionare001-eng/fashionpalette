@@ -75,7 +75,7 @@ export function initHeader(containerId) {
         </div>
 
         <!-- Desktop Navigation Links (Left align) -->
-        <nav class="hidden md:flex col-span-5 items-center justify-start gap-4 lg:gap-6 whitespace-nowrap text-[11px] lg:text-xs tracking-widest">
+        <nav class="hidden md:flex col-span-5 items-center justify-start gap-3 lg:gap-5 whitespace-nowrap text-[11px] xl:text-xs tracking-wider">
           ${NAVIGATION_LINKS.map(item => `
             <a 
               href="${item.link}" 

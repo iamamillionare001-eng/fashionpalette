@@ -10,125 +10,168 @@ export function initAdmin(containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
 
-  // Render the admin console HTML
-  function renderAdminConsole() {
-    container.innerHTML = `
-      <section id="admin" class="py-20 border-t border-[var(--color-border-subtle)] bg-[var(--color-surface-card)]">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
-          <!-- Section Header -->
-          <div class="text-center max-w-xl mx-auto mb-16 space-y-4">
-            <span class="text-xs uppercase tracking-[0.3em] text-[var(--color-accent-gold)] font-medium block">Store Administration</span>
-            <h2 class="text-3xl sm:text-4xl font-light tracking-tight text-[var(--color-text-primary)]">Founder Control Panel</h2>
-            <div class="h-[1px] w-12 bg-[var(--color-accent-gold)] mx-auto mt-4"></div>
-            <p class="text-xs text-[var(--color-text-secondary)] font-light">
-              Directly configure store attributes, catalog items, and order logs. Protected workspace for operators.
-            </p>
-          </div>
-
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            
-            <!-- Product Creation Console (Left) -->
-            <div class="lg:col-span-6 bg-[var(--color-bg-primary)] border border-[var(--color-border-subtle)] p-6 rounded-[var(--border-radius-sm)] space-y-6">
-              <h3 class="text-md uppercase tracking-wider text-[var(--color-text-primary)] font-bold border-b border-[var(--color-border-subtle)] pb-3">
-                Add New Luxury Item
-              </h3>
-              
-              <form class="space-y-4" onsubmit="event.preventDefault();">
-                <div>
-                  <label class="block text-[9px] uppercase tracking-wider text-[var(--color-text-secondary)] font-bold mb-1.5">Product Title</label>
-                  <input type="text" placeholder="e.g. Silk Tuxedo Jacket" class="w-full bg-[var(--color-surface-card)] border border-[var(--color-border-subtle)] px-3 py-2.5 text-xs rounded-[var(--border-radius-sm)] focus:outline-none focus:border-[var(--color-accent-gold)]" />
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                  <div>
-                    <label class="block text-[9px] uppercase tracking-wider text-[var(--color-text-secondary)] font-bold mb-1.5">Category</label>
-                    <select class="w-full bg-[var(--color-surface-card)] border border-[var(--color-border-subtle)] px-3 py-2.5 text-xs rounded-[var(--border-radius-sm)] focus:outline-none focus:border-[var(--color-accent-gold)]">
-                      <option>Ready-To-Wear</option>
-                      <option>Accessories</option>
-                      <option>Footwear</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="block text-[9px] uppercase tracking-wider text-[var(--color-text-secondary)] font-bold mb-1.5">Price (${storeConfig.currency})</label>
-                    <input type="number" placeholder="18500" class="w-full bg-[var(--color-surface-card)] border border-[var(--color-border-subtle)] px-3 py-2.5 text-xs rounded-[var(--border-radius-sm)] focus:outline-none focus:border-[var(--color-accent-gold)]" />
-                  </div>
-                </div>
-
-                <div>
-                  <label class="block text-[9px] uppercase tracking-wider text-[var(--color-text-secondary)] font-bold mb-1.5">Product Image Asset URL</label>
-                  <input type="text" placeholder="https://..." class="w-full bg-[var(--color-surface-card)] border border-[var(--color-border-subtle)] px-3 py-2.5 text-xs rounded-[var(--border-radius-sm)] focus:outline-none focus:border-[var(--color-accent-gold)]" />
-                </div>
-
-                <button type="submit" class="w-full py-3 bg-[var(--color-cta-fill)] text-[var(--color-cta-text)] text-xs uppercase tracking-widest font-semibold hover:bg-[var(--color-accent-gold)] transition-colors duration-300 rounded-[var(--border-radius-sm)]">
-                  Add to Storefront
-                </button>
-              </form>
-            </div>
-
-            <!-- Quick Store Configuration Stats (Right) -->
-            <div class="lg:col-span-6 bg-[var(--color-bg-primary)] border border-[var(--color-border-subtle)] p-6 rounded-[var(--border-radius-sm)] space-y-6">
-              <h3 class="text-md uppercase tracking-wider text-[var(--color-text-primary)] font-bold border-b border-[var(--color-border-subtle)] pb-3">
-                Store Quick-Stats
-              </h3>
-
-              <div class="grid grid-cols-2 gap-4">
-                <div class="bg-[var(--color-surface-card)] p-4 border border-[var(--color-border-subtle)] rounded-[var(--border-radius-sm)]">
-                  <p class="text-[9px] uppercase tracking-widest text-[var(--color-text-secondary)]">Total Products</p>
-                  <p class="text-2xl font-light text-[var(--color-text-primary)] mt-1">3 Active</p>
-                </div>
-                <div class="bg-[var(--color-surface-card)] p-4 border border-[var(--color-border-subtle)] rounded-[var(--border-radius-sm)]">
-                  <p class="text-[9px] uppercase tracking-widest text-[var(--color-text-secondary)]">Total Revenue</p>
-                  <p class="text-2xl font-light text-emerald-700 mt-1">${storeConfig.currency}1,34,500</p>
-                </div>
-              </div>
-
-              <!-- Configuration Summary Table -->
-              <div class="bg-[var(--color-surface-card)] border border-[var(--color-border-subtle)] rounded-[var(--border-radius-sm)] p-4 space-y-3">
-                <p class="text-[10px] uppercase tracking-wider text-[var(--color-text-primary)] font-bold">Metadata Configurations</p>
-                
-                <div class="space-y-2 text-xs">
-                  <div class="flex justify-between border-b border-gray-50 pb-1.5">
-                    <span class="text-[var(--color-text-secondary)]">Store Name:</span>
-                    <span class="font-medium">${storeConfig.storeName}</span>
-                  </div>
-                  <div class="flex justify-between border-b border-gray-50 pb-1.5">
-                    <span class="text-[var(--color-text-secondary)]">Concierge Email:</span>
-                    <span class="font-medium">${storeConfig.contact.email}</span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-[var(--color-text-secondary)]">Active Currency:</span>
-                    <span class="font-medium">${storeConfig.currency} (${storeConfig.currencyCode})</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-      </section>
-    `;
-  }
-
   function isAuthenticated() {
     return sessionStorage.getItem('admin_authenticated') === 'true';
   }
 
+  // Render the admin console HTML
+  function renderAdminConsole() {
+    container.innerHTML = `
+      <!-- Admin Custom Top-Bar -->
+      <div class="bg-[#1A1A1A] text-[#F9F8F6] py-4 px-6 sm:px-8 flex items-center justify-between border-b border-[#C5A880] w-full sticky top-0 z-50">
+        <div class="flex items-center space-x-3">
+          <div class="w-8 h-8 flex items-center justify-center border border-[#C5A880] rounded-full">
+            <span class="font-serif text-xs text-[#C5A880]">FP</span>
+          </div>
+          <div>
+            <h1 class="font-serif text-sm tracking-[0.2em] uppercase font-light leading-none">${storeConfig.storeName}</h1>
+            <p class="text-[8px] uppercase tracking-wider text-[#C5A880] mt-1 font-sans leading-none">Founder Administration Console</p>
+          </div>
+        </div>
+        
+        <button 
+          id="admin-logout-btn" 
+          class="flex items-center space-x-2 border border-[#E5E3DF]/30 hover:border-[#C5A880] px-4 py-2 rounded-full text-[10px] tracking-wider uppercase font-semibold text-[#F9F8F6] hover:bg-[#C5A880] hover:text-[#1A1A1A] transition-all duration-300 focus:outline-none"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          <span>Exit / Logout to Storefront</span>
+        </button>
+      </div>
+
+      <div class="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Section Header -->
+        <div class="text-center max-w-xl mx-auto mb-12 space-y-4">
+          <span class="text-xs uppercase tracking-[0.3em] text-[var(--color-accent-gold)] font-medium block">Control Panel</span>
+          <h2 class="text-3xl font-serif font-light tracking-tight text-[var(--color-text-primary)]">Bespoke Storefront Manager</h2>
+          <div class="h-[1px] w-12 bg-[var(--color-accent-gold)] mx-auto mt-4"></div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          <!-- Product Creation Console (Left) -->
+          <div class="lg:col-span-6 bg-white border border-[#E5E3DF] p-6 rounded-md space-y-6">
+            <h3 class="text-md uppercase tracking-wider text-[#1A1A1A] font-bold border-b border-[#E5E3DF] pb-3">
+              Add New Luxury Item
+            </h3>
+            
+            <form class="space-y-4" onsubmit="event.preventDefault();">
+              <div>
+                <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Product Title</label>
+                <input type="text" placeholder="e.g. Silk Tuxedo Jacket" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-md focus:outline-none focus:border-[#C5A880]" />
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Category</label>
+                  <select class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-md focus:outline-none focus:border-[#C5A880]">
+                    <option>Ready-To-Wear</option>
+                    <option>Accessories</option>
+                    <option>Footwear</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Price (${storeConfig.currency})</label>
+                  <input type="number" placeholder="18500" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-md focus:outline-none focus:border-[#C5A880]" />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Product Image Asset URL</label>
+                <input type="text" placeholder="https://..." class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-md focus:outline-none focus:border-[#C5A880]" />
+              </div>
+
+              <button type="submit" class="w-full py-3 bg-[#1A1A1A] text-white text-xs uppercase tracking-widest font-semibold hover:bg-[#C5A880] hover:text-[#1A1A1A] transition-colors duration-300 rounded-md">
+                Add to Storefront
+              </button>
+            </form>
+          </div>
+
+          <!-- Quick Store Configuration Stats (Right) -->
+          <div class="lg:col-span-6 bg-[#F9F8F6] border border-[#E5E3DF] p-6 rounded-md space-y-6">
+            <h3 class="text-md uppercase tracking-wider text-[#1A1A1A] font-bold border-b border-[#E5E3DF] pb-3 bg-white px-6 py-4 rounded-t-md -mx-6 -mt-6">
+              Store Quick-Stats
+            </h3>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-white p-4 border border-[#E5E3DF] rounded-md">
+                <p class="text-[9px] uppercase tracking-widest text-[#5A5A5A]">Total Products</p>
+                <p class="text-2xl font-light text-[#1A1A1A] mt-1">3 Active</p>
+              </div>
+              <div class="bg-white p-4 border border-[#E5E3DF] rounded-md">
+                <p class="text-[9px] uppercase tracking-widest text-[#5A5A5A]">Total Revenue</p>
+                <p class="text-2xl font-light text-[#C5A880] mt-1">${storeConfig.currency}1,34,500</p>
+              </div>
+            </div>
+
+            <!-- Configuration Summary Table -->
+            <div class="bg-white border border-[#E5E3DF] rounded-md p-4 space-y-3">
+              <p class="text-[10px] uppercase tracking-wider text-[#1A1A1A] font-bold">Metadata Configurations</p>
+              
+              <div class="space-y-2 text-xs text-[#1A1A1A]">
+                <div class="flex justify-between border-b border-[#E5E3DF] pb-1.5">
+                  <span class="text-[#5A5A5A]">Store Name:</span>
+                  <span class="font-medium">${storeConfig.storeName}</span>
+                </div>
+                <div class="flex justify-between border-b border-[#E5E3DF] pb-1.5">
+                  <span class="text-[#5A5A5A]">Concierge Email:</span>
+                  <span class="font-medium">${storeConfig.contact.email}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-[#5A5A5A]">Active Currency:</span>
+                  <span class="font-medium">${storeConfig.currency} (${storeConfig.currencyCode})</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    `;
+
+    // Hook up exit button inside console
+    const logoutBtn = document.getElementById('admin-logout-btn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', handleLogout);
+    }
+  }
+
   function handleSuccessfulUnlock() {
     sessionStorage.setItem('admin_authenticated', 'true');
+    const storefront = document.getElementById('storefront-view');
+    if (storefront) {
+      storefront.classList.add('hidden');
+    }
     container.classList.remove('hidden');
     renderAdminConsole();
-    // Scroll to container
-    container.scrollIntoView({ behavior: 'smooth' });
-    // Update hash
+    window.scrollTo({ top: 0, behavior: 'instant' });
     if (window.location.hash !== '#admin') {
       window.location.hash = 'admin';
     }
   }
 
+  function handleLogout() {
+    sessionStorage.removeItem('admin_authenticated');
+    
+    // Hide admin view
+    container.classList.add('hidden');
+    container.innerHTML = '';
+
+    // Show storefront view
+    const storefront = document.getElementById('storefront-view');
+    if (storefront) {
+      storefront.classList.remove('hidden');
+    }
+
+    // Set hash back to homepage
+    history.pushState("", document.title, window.location.pathname + window.location.search);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
   function showPasswordModal() {
-    // If modal already exists, don't create another
     if (document.getElementById('admin-auth-modal')) return;
 
     const modal = document.createElement('div');
@@ -178,7 +221,6 @@ export function initAdmin(containerId) {
     `;
     document.body.appendChild(modal);
 
-    // Animation entry
     setTimeout(() => {
       const card = document.getElementById('auth-modal-card');
       if (card) {
@@ -221,10 +263,13 @@ export function initAdmin(containerId) {
 
     cancelBtn.addEventListener('click', () => {
       cleanup();
-      // Reset hash if canceled
-      if (window.location.hash === '#admin') {
-        history.pushState("", document.title, window.location.pathname + window.location.search);
+      // Reset hash if canceled, showing storefront
+      history.pushState("", document.title, window.location.pathname + window.location.search);
+      const storefront = document.getElementById('storefront-view');
+      if (storefront) {
+        storefront.classList.remove('hidden');
       }
+      container.classList.add('hidden');
     });
 
     unlockBtn.addEventListener('click', attemptUnlock);
@@ -236,44 +281,46 @@ export function initAdmin(containerId) {
   }
 
   function checkRoute() {
+    const storefront = document.getElementById('storefront-view');
+
     if (window.location.hash === '#admin') {
       if (isAuthenticated()) {
+        if (storefront) {
+          storefront.classList.add('hidden');
+        }
         container.classList.remove('hidden');
         renderAdminConsole();
-        container.scrollIntoView({ behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: 'instant' });
       } else {
+        if (storefront) {
+          storefront.classList.remove('hidden');
+        }
+        container.classList.add('hidden');
         showPasswordModal();
       }
     } else {
-      if (!isAuthenticated()) {
-        container.classList.add('hidden');
-        container.innerHTML = '';
+      if (storefront) {
+        storefront.classList.remove('hidden');
+      }
+      container.classList.add('hidden');
+      container.innerHTML = '';
+      
+      const modal = document.getElementById('admin-auth-modal');
+      if (modal && modal.parentNode) {
+        modal.parentNode.removeChild(modal);
       }
     }
   }
 
-  // Monitor URL hash routing
   window.addEventListener('hashchange', checkRoute);
-  
-  // Check immediately on initialize
   checkRoute();
 
-  // Setup discrete founder trigger listener in footer
   function setupFounderTrigger() {
     const trigger = document.getElementById('founder-trigger');
     if (trigger) {
       trigger.addEventListener('click', (e) => {
         e.preventDefault();
-        if (isAuthenticated()) {
-          container.classList.remove('hidden');
-          renderAdminConsole();
-          container.scrollIntoView({ behavior: 'smooth' });
-          if (window.location.hash !== '#admin') {
-            window.location.hash = 'admin';
-          }
-        } else {
-          showPasswordModal();
-        }
+        window.location.hash = 'admin';
       });
     } else {
       setTimeout(setupFounderTrigger, 500);
