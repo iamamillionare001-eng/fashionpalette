@@ -75,7 +75,7 @@ export function initHeader(containerId) {
         </div>
 
         <!-- Desktop Navigation Links (Left align) -->
-        <nav class="hidden md:flex col-span-5 items-center justify-start gap-3 lg:gap-5 whitespace-nowrap text-[11px] xl:text-xs tracking-wider">
+        <nav class="hidden md:flex col-span-5 items-center justify-start gap-4 lg:gap-6 whitespace-nowrap text-[11px] xl:text-xs tracking-wider">
           ${NAVIGATION_LINKS.map(item => `
             <a 
               href="${item.link}" 
@@ -88,7 +88,7 @@ export function initHeader(containerId) {
         </nav>
 
         <!-- Brand Logo & Monogram Badge (Centered) -->
-        <a href="#" id="brand-logo" class="flex flex-row md:flex-col items-center justify-center text-center space-x-3 md:space-x-0 md:gap-2 group flex-initial md:col-span-2 md:mx-auto">
+        <a href="#" id="brand-logo" class="flex flex-row items-center justify-center gap-3 group flex-initial md:col-span-2 md:mx-auto">
           <!-- Beautiful Custom Interlocking FP Monogram Logo -->
           <div class="relative w-12 h-12 flex items-center justify-center transition-transform duration-500 group-hover:scale-105">
             <svg width="48" height="48" viewBox="0 0 100 100" class="w-full h-full text-[#1A1A1A]">
@@ -102,7 +102,7 @@ export function initHeader(containerId) {
             </svg>
           </div>
           
-          <div class="flex flex-col items-start md:items-center leading-none select-none">
+          <div class="flex flex-col items-start leading-none select-none">
             <span class="font-serif text-xl tracking-[0.22em] uppercase font-light text-[#1A1A1A] leading-tight hidden min-[480px]:inline-block">
               ${storeConfig.storeName}
             </span>
