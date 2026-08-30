@@ -344,7 +344,25 @@ export function initHeader(containerId) {
         }
       }
     });
+    // Dispatch search change event for real-time filtering
+    searchInput.addEventListener('input', (e) => {
+      window.dispatchEvent(new CustomEvent('fp_search_changed', {
+        detail: { query: e.target.value }
+      }));
+    });
   }
+
+  // --- Cart Count Badge Sync Logic ---
+  const updateCartBadge = () => {
+    const badge = document.getElementById('cart-badge');
+    if (badge) {
+      const cart = JSON.parse(localStorage.getItem('fp_cart') || '[]');
+      const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+      badge.innerText = totalItems;
+    }
+  };
+  updateCartBadge();
+  window.addEventListener('fp_cart_updated', updateCartBadge);
 
   // --- Header Shrink on Scroll Logic ---
   if (headerElement && navContainer) {
