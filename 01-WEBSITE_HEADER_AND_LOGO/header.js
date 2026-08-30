@@ -353,6 +353,14 @@ export function initHeader(containerId) {
   }
 
   // --- Cart Count Badge Sync Logic ---
+  const cartBtn = document.getElementById('cart-btn');
+  if (cartBtn) {
+    cartBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.dispatchEvent(new CustomEvent('fp_open_cart'));
+    });
+  }
+
   const updateCartBadge = () => {
     const badge = document.getElementById('cart-badge');
     if (badge) {

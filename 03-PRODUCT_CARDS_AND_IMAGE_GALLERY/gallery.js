@@ -362,9 +362,7 @@ export function initGallery(containerId) {
     
     // Dispatch global event for header and checkouts to sync
     window.dispatchEvent(new CustomEvent('fp_cart_updated'));
-
-    // Visual feedback
-    alert(`⚡ Added ${quantity}x ${product.title} (${size}) to Bag!`);
+    window.dispatchEvent(new CustomEvent('fp_open_cart'));
   }
 
   // --- Luxury Quick View Modal ---
