@@ -2,7 +2,7 @@
  * ADMIN CONTROL PANEL & PRODUCT MANAGEMENT
  * Serves as the dashboard workspace for founders to add products,
  * adjust pricing tiers, manage orders, track estimated profits,
- * and export orders to suppliers.
+ * configure store settings, and switch brand themes.
  */
 
 import { storeConfig } from '../07-STORE_SETTINGS_AND_THEME_COLORS/store_config.js';
@@ -41,15 +41,42 @@ function getOrders() {
 
 function saveOrders(orders) {
   localStorage.setItem("fp_orders_data", JSON.stringify(orders));
-  // Dispatches event to update widgets/badges
   window.dispatchEvent(new CustomEvent("fp_orders_updated"));
+}
+
+// Helper local functions to read/write store settings
+function getStoreSettings() {
+  const cached = localStorage.getItem("fp_store_settings");
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch (e) {
+      console.error("Error parsing fp_store_settings", e);
+    }
+  }
+  
+  // Return default configurations
+  const defaults = {
+    storeName: "FashionPalette",
+    whatsappPhone: "919876543210",
+    supportEmail: "concierge@fashionpalette.com",
+    upiId: "pay@fashionpalette",
+    theme: "Royale Noir"
+  };
+  localStorage.setItem("fp_store_settings", JSON.stringify(defaults));
+  return defaults;
+}
+
+function saveStoreSettings(settings) {
+  localStorage.setItem("fp_store_settings", JSON.stringify(settings));
+  window.dispatchEvent(new CustomEvent("fp_settings_updated"));
 }
 
 export function initAdmin(containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
 
-  let activeTab = "dashboard"; // "dashboard" | "products" | "ledger"
+  let activeTab = "dashboard"; // "dashboard" | "products" | "ledger" | "settings"
 
   function isAuthenticated() {
     return sessionStorage.getItem('admin_authenticated') === 'true';
@@ -58,7 +85,6 @@ export function initAdmin(containerId) {
   // Render the admin console HTML
   function renderAdminConsole() {
     const orders = getOrders();
-    // Count pending orders (not Delivered and not Cancelled)
     const pendingOrdersCount = orders.filter(o => o.status !== "Delivered" && o.status !== "Cancelled").length;
 
     container.innerHTML = `
@@ -85,7 +111,7 @@ export function initAdmin(containerId) {
         </button>
       </div>
 
-      <!-- Luxury Tab Sub-Navigation Bar (3 Tabs) -->
+      <!-- Luxury Tab Sub-Navigation Bar (4 Tabs) -->
       <div class="border-b border-[#E5E3DF] bg-white w-full sticky top-[68px] z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-8">
           <button 
@@ -123,6 +149,16 @@ export function initAdmin(containerId) {
               </span>
             ` : ''}
           </button>
+          <button 
+            id="tab-btn-settings" 
+            class="py-4.5 text-[10px] sm:text-xs uppercase tracking-widest font-semibold border-b-2 transition-all focus:outline-none ${
+              activeTab === "settings" 
+                ? "border-[#1A1A1A] text-[#1A1A1A]" 
+                : "border-transparent text-[#8A8A8A] hover:text-[#1A1A1A]"
+            }"
+          >
+            Store Settings & Theme
+          </button>
         </div>
       </div>
 
@@ -140,6 +176,7 @@ export function initAdmin(containerId) {
     const tabDashboard = document.getElementById('tab-btn-dashboard');
     const tabProducts = document.getElementById('tab-btn-products');
     const tabLedger = document.getElementById('tab-btn-ledger');
+    const tabSettings = document.getElementById('tab-btn-settings');
 
     if (tabDashboard) {
       tabDashboard.addEventListener('click', () => {
@@ -159,14 +196,22 @@ export function initAdmin(containerId) {
         renderAdminConsole();
       });
     }
+    if (tabSettings) {
+      tabSettings.addEventListener('click', () => {
+        activeTab = "settings";
+        renderAdminConsole();
+      });
+    }
 
     // Render the active tab content
     if (activeTab === "dashboard") {
       renderDashboardTab();
     } else if (activeTab === "products") {
       renderProductsTab();
-    } else {
+    } else if (activeTab === "ledger") {
       renderLedgerTab();
+    } else {
+      renderSettingsTab();
     }
   }
 
@@ -326,7 +371,7 @@ export function initAdmin(containerId) {
     if (resetHeroBtn) {
       resetHeroBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        if (confirm("Are you sure you want to reset the hero banner to factory defaults?")) {
+        if (confirm("Are you sure you want to reset the hero banner to defaults?")) {
           const DEFAULT_HERO_CONFIG = {
             headlineTag: "Festive Collection 2026",
             mainHeading: "Grand Festive Collection 2026",
@@ -378,7 +423,7 @@ export function initAdmin(containerId) {
           <form id="add-product-form" class="space-y-4" onsubmit="event.preventDefault();">
             <div>
               <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Product Title</label>
-              <input type="text" id="prod-title" required placeholder="e.g. Royal Silk Lehenga" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-2 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+              <input type="text" id="prod-title" required placeholder="e.g. Royal Silk Lehenga" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
             </div>
 
             <div class="grid grid-cols-2 gap-4">
@@ -613,16 +658,11 @@ export function initAdmin(containerId) {
     if (!tabContent) return;
 
     const orders = getOrders();
-    
-    // Read supplier cost percentage from localStorage (default 50)
     let supplierCostPct = parseInt(localStorage.getItem("fp_supplier_cost_pct") || "50");
 
-    // Math calculations for Analytics summary
     const totalOrdersCount = orders.length;
     const grossRevenue = orders.reduce((sum, o) => sum + o.total, 0);
     const avgOrderValue = totalOrdersCount > 0 ? Math.round(grossRevenue / totalOrdersCount) : 0;
-    
-    // Estimated profit based on configurable supplier cost percentage
     const estProfit = Math.round(grossRevenue * (1 - supplierCostPct / 100));
 
     if (orders.length === 0) {
@@ -712,17 +752,12 @@ export function initAdmin(containerId) {
                 ${orders.map(order => {
                   return `
                     <tr class="align-top group">
-                      <!-- ID -->
                       <td class="py-4 font-mono font-bold text-[#C5A880] whitespace-nowrap">
                         ${order.id}
                       </td>
-                      
-                      <!-- Date -->
                       <td class="py-4 text-[#5A5A5A] whitespace-nowrap pr-2">
                         ${order.date}
                       </td>
-
-                      <!-- Customer Details -->
                       <td class="py-4 max-w-[180px] pr-4">
                         <p class="font-semibold text-[#1A1A1A]">${order.customerName}</p>
                         <p class="text-[10px] text-[#5A5A5A] mt-0.5">+91 ${order.phone}</p>
@@ -730,8 +765,6 @@ export function initAdmin(containerId) {
                           ${order.city} (${order.pincode})
                         </p>
                       </td>
-
-                      <!-- Ordered Items -->
                       <td class="py-4 max-w-[200px] pr-4">
                         <div class="space-y-1.5">
                           ${order.items.map(item => `
@@ -742,18 +775,12 @@ export function initAdmin(containerId) {
                           `).join('')}
                         </div>
                       </td>
-
-                      <!-- Payment Method -->
                       <td class="py-4 text-[10px] uppercase tracking-wider font-medium text-[#1A1A1A] whitespace-nowrap pr-2">
                         ${order.paymentMethod.replace("Transfer", "").replace("Prepaid", "Prepaid")}
                       </td>
-
-                      <!-- Order Total -->
                       <td class="py-4 font-bold text-[#1A1A1A] whitespace-nowrap">
                         ₹${order.total.toLocaleString('en-IN')}
                       </td>
-
-                      <!-- Status Badge Selector -->
                       <td class="py-4">
                         <select 
                           data-order-status-id="${order.id}" 
@@ -774,32 +801,22 @@ export function initAdmin(containerId) {
                           <option value="Cancelled" ${order.status === "Cancelled" ? "selected" : ""}>Cancelled</option>
                         </select>
                       </td>
-
-                      <!-- Actions Row -->
                       <td class="py-4 text-right whitespace-nowrap space-x-1">
-                        <!-- Chat Action -->
                         <button 
                           data-chat-id="${order.id}"
                           class="chat-customer-btn border border-[#E5E3DF] text-[#1A1A1A] hover:bg-stone-50 rounded-lg px-2 py-1.5 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none"
-                          title="Chat via WhatsApp"
                         >
                           Chat
                         </button>
-                        
-                        <!-- Print slip action -->
                         <button 
                           data-print-id="${order.id}"
                           class="print-slip-btn border border-[#E5E3DF] text-[#1A1A1A] hover:bg-stone-50 rounded-lg px-2 py-1.5 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none"
-                          title="Print Packing Slip"
                         >
                           Slip
                         </button>
-
-                        <!-- Delete Order -->
                         <button 
                           data-delete-order-id="${order.id}"
                           class="delete-order-btn text-rose-600 hover:text-rose-900 border border-rose-200 hover:border-rose-600 rounded-lg px-2 py-1.5 bg-rose-50/50 hover:bg-rose-50 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none"
-                          title="Delete Order (Cleanup)"
                         >
                           Delete
                         </button>
@@ -824,7 +841,6 @@ export function initAdmin(containerId) {
         if (val > 100) val = 100;
         localStorage.setItem("fp_supplier_cost_pct", val.toString());
         
-        // Dynamically recalculate estimated profit card
         const updatedProfit = Math.round(grossRevenue * (1 - val / 100));
         const profitCardText = tabContent.querySelector(".bg-emerald-50\\/20 p.text-2xl");
         if (profitCardText) {
@@ -836,9 +852,7 @@ export function initAdmin(containerId) {
     // Hook Up CSV Exporter
     const csvBtn = document.getElementById("csv-export-btn");
     if (csvBtn) {
-      csvBtn.addEventListener("click", () => {
-        exportOrdersToCSV(orders);
-      });
+      csvBtn.addEventListener("click", () => exportOrdersToCSV(orders));
     }
 
     // Hook Up Status Selectors
@@ -854,7 +868,7 @@ export function initAdmin(containerId) {
           return o;
         });
         saveOrders(updatedOrders);
-        renderAdminConsole(); // Full refresh to update badges and colors
+        renderAdminConsole();
       });
     });
 
@@ -864,9 +878,7 @@ export function initAdmin(containerId) {
       btn.addEventListener("click", () => {
         const id = btn.getAttribute("data-chat-id");
         const order = orders.find(o => o.id === id);
-        if (order) {
-          chatCustomerWhatsApp(order);
-        }
+        if (order) chatCustomerWhatsApp(order);
       });
     });
 
@@ -876,9 +888,7 @@ export function initAdmin(containerId) {
       btn.addEventListener("click", () => {
         const id = btn.getAttribute("data-print-id");
         const order = orders.find(o => o.id === id);
-        if (order) {
-          generatePackingSlip(order);
-        }
+        if (order) generatePackingSlip(order);
       });
     });
 
@@ -897,12 +907,206 @@ export function initAdmin(containerId) {
     });
   }
 
+  // TAB 4: STORE SETTINGS & CUSTOM THEME
+  function renderSettingsTab() {
+    const tabContent = document.getElementById('admin-tab-content-container');
+    if (!tabContent) return;
+
+    // Load active saved configurations
+    const settings = getStoreSettings();
+
+    tabContent.innerHTML = `
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-fadeIn">
+        <!-- Settings Form (col-span-7) -->
+        <div class="lg:col-span-7 bg-white border border-[#E5E3DF] p-6 sm:p-8 rounded-2xl space-y-6 shadow-sm">
+          <div>
+            <h3 class="text-sm uppercase tracking-wider text-[#1A1A1A] font-bold border-b border-[#E5E3DF] pb-3 flex items-center gap-2">
+              <svg class="w-4.5 h-4.5 text-[#C5A880]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Global Store Settings
+            </h3>
+          </div>
+
+          <form id="store-settings-form" class="space-y-5" onsubmit="event.preventDefault();">
+            <div>
+              <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Store Name</label>
+              <input type="text" id="settings-store-name" required value="${settings.storeName}" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">WhatsApp Business Number (with Country Code)</label>
+                <input type="text" id="settings-whatsapp" required value="${settings.whatsappPhone}" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+              </div>
+              <div>
+                <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Concierge Support Email</label>
+                <input type="email" id="settings-email" required value="${settings.supportEmail}" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Prepaid UPI ID / VPA</label>
+              <input type="text" id="settings-upi" required value="${settings.upiId}" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+            </div>
+
+            <!-- Theme Preset Selection Cards -->
+            <div class="space-y-2.5">
+              <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold">Luxury Theme Preset</label>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                
+                <!-- Royale Noir -->
+                <label class="cursor-pointer border rounded-2xl p-4 flex flex-col space-y-1.5 transition-all relative ${
+                  settings.theme === "Royale Noir" 
+                    ? 'border-[#1A1A1A] bg-[#1A1A1A]/5 shadow-xs' 
+                    : 'border-[#E5E3DF] bg-white hover:border-[#1A1A1A]'
+                }" id="theme-card-noir">
+                  <input type="radio" name="settings-theme-select" value="Royale Noir" ${
+                    settings.theme === "Royale Noir" ? "checked" : ""
+                  } class="absolute top-3 right-3 accent-[#C5A880] cursor-pointer" />
+                  <span class="text-xs font-serif font-bold text-[#1a1a1a]">Royale Noir</span>
+                  <div class="flex gap-1 mt-1">
+                    <span class="w-3.5 h-3.5 rounded-full bg-[#1A1A1A] border border-[#E5E3DF]"></span>
+                    <span class="w-3.5 h-3.5 rounded-full bg-[#C5A880] border border-[#E5E3DF]"></span>
+                    <span class="w-3.5 h-3.5 rounded-full bg-[#F9F8F6] border border-[#E5E3DF]"></span>
+                  </div>
+                </label>
+
+                <!-- Festive Crimson -->
+                <label class="cursor-pointer border rounded-2xl p-4 flex flex-col space-y-1.5 transition-all relative ${
+                  settings.theme === "Festive Crimson" 
+                    ? 'border-[#5C061E] bg-[#5C061E]/5 shadow-xs' 
+                    : 'border-[#E5E3DF] bg-white hover:border-[#5C061E]'
+                }" id="theme-card-crimson">
+                  <input type="radio" name="settings-theme-select" value="Festive Crimson" ${
+                    settings.theme === "Festive Crimson" ? "checked" : ""
+                  } class="absolute top-3 right-3 accent-[#E2B13C] cursor-pointer" />
+                  <span class="text-xs font-serif font-bold text-[#5c061e]">Festive Crimson</span>
+                  <div class="flex gap-1 mt-1">
+                    <span class="w-3.5 h-3.5 rounded-full bg-[#5C061E] border border-[#E5E3DF]"></span>
+                    <span class="w-3.5 h-3.5 rounded-full bg-[#E2B13C] border border-[#E5E3DF]"></span>
+                    <span class="w-3.5 h-3.5 rounded-full bg-[#FFF5F6] border border-[#E5E3DF]"></span>
+                  </div>
+                </label>
+
+                <!-- Emerald Atelier -->
+                <label class="cursor-pointer border rounded-2xl p-4 flex flex-col space-y-1.5 transition-all relative ${
+                  settings.theme === "Emerald Atelier" 
+                    ? 'border-[#0F3A2E] bg-[#0F3A2E]/5 shadow-xs' 
+                    : 'border-[#E5E3DF] bg-white hover:border-[#0F3A2E]'
+                }" id="theme-card-emerald">
+                  <input type="radio" name="settings-theme-select" value="Emerald Atelier" ${
+                    settings.theme === "Emerald Atelier" ? "checked" : ""
+                  } class="absolute top-3 right-3 accent-[#D4AF37] cursor-pointer" />
+                  <span class="text-xs font-serif font-bold text-[#0F3A2E]">Emerald Atelier</span>
+                  <div class="flex gap-1 mt-1">
+                    <span class="w-3.5 h-3.5 rounded-full bg-[#0F3A2E] border border-[#E5E3DF]"></span>
+                    <span class="w-3.5 h-3.5 rounded-full bg-[#D4AF37] border border-[#E5E3DF]"></span>
+                    <span class="w-3.5 h-3.5 rounded-full bg-[#F4F8F6] border border-[#E5E3DF]"></span>
+                  </div>
+                </label>
+
+              </div>
+            </div>
+
+            <button type="submit" id="save-settings-submit-btn" class="w-full py-3.5 bg-[#1A1A1A] hover:bg-[#C5A880] hover:text-[#1A1A1A] text-white text-xs uppercase tracking-widest font-semibold transition-all duration-300 rounded-xl focus:outline-none shadow-md">
+              Save Store Settings
+            </button>
+          </form>
+        </div>
+
+        <!-- Right: Settings Explanation Block (col-span-5) -->
+        <div class="lg:col-span-5 space-y-6">
+          <div class="bg-white border border-[#E5E3DF] p-6 rounded-2xl space-y-4 shadow-sm">
+            <h3 class="text-sm uppercase tracking-wider text-[#1A1A1A] font-bold">Theme & Settings Synchronization</h3>
+            <p class="text-xs text-[#5A5A5A] leading-relaxed font-light">
+              Saving configurations here dynamically updates store details across header monograms, copyright scripts, and support footers instantly without refreshing the page.
+            </p>
+            <div class="bg-stone-50 border border-[#E5E3DF] p-4 rounded-xl space-y-2 text-xs">
+              <p class="font-bold text-[#1A1A1A] uppercase tracking-wider text-[9px]">What updates automatically?</p>
+              <ul class="list-disc list-inside text-[11px] text-[#5A5A5A] space-y-1 font-light pl-1">
+                <li>Header monogram text based on initials of Store Name.</li>
+                <li>WhatsApp redirect links to your verified phone number.</li>
+                <li>Prepaid UPI detail sections and generated receipt templates.</li>
+                <li>Global typography accent color tokens (primary button fills, chevrons, highlight borders).</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Hook Up Theme Card Card Selectors (Visual border highlights)
+    const form = document.getElementById("store-settings-form");
+    const noirCard = document.getElementById("theme-card-noir");
+    const crimsonCard = document.getElementById("theme-card-crimson");
+    const emeraldCard = document.getElementById("theme-card-emerald");
+
+    if (noirCard && crimsonCard && emeraldCard) {
+      noirCard.addEventListener("click", () => {
+        noirCard.className = "cursor-pointer border border-[#1A1A1A] bg-[#1A1A1A]/5 rounded-2xl p-4 flex flex-col space-y-1.5 transition-all relative shadow-xs";
+        crimsonCard.className = "cursor-pointer border border-[#E5E3DF] bg-white rounded-2xl p-4 flex flex-col space-y-1.5 transition-all relative hover:border-[#1A1A1A]";
+        emeraldCard.className = "cursor-pointer border border-[#E5E3DF] bg-white rounded-2xl p-4 flex flex-col space-y-1.5 transition-all relative hover:border-[#1A1A1A]";
+      });
+
+      crimsonCard.addEventListener("click", () => {
+        crimsonCard.className = "cursor-pointer border border-[#5C061E] bg-[#5C061E]/5 rounded-2xl p-4 flex flex-col space-y-1.5 transition-all relative shadow-xs";
+        noirCard.className = "cursor-pointer border border-[#E5E3DF] bg-white rounded-2xl p-4 flex flex-col space-y-1.5 transition-all relative hover:border-[#1A1A1A]";
+        emeraldCard.className = "cursor-pointer border border-[#E5E3DF] bg-white rounded-2xl p-4 flex flex-col space-y-1.5 transition-all relative hover:border-[#1A1A1A]";
+      });
+
+      emeraldCard.addEventListener("click", () => {
+        emeraldCard.className = "cursor-pointer border border-[#0F3A2E] bg-[#0F3A2E]/5 rounded-2xl p-4 flex flex-col space-y-1.5 transition-all relative shadow-xs";
+        noirCard.className = "cursor-pointer border border-[#E5E3DF] bg-white rounded-2xl p-4 flex flex-col space-y-1.5 transition-all relative hover:border-[#1A1A1A]";
+        crimsonCard.className = "cursor-pointer border border-[#E5E3DF] bg-white rounded-2xl p-4 flex flex-col space-y-1.5 transition-all relative hover:border-[#1A1A1A]";
+      });
+    }
+
+    // Hook Up Settings Form Submit
+    if (form) {
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        
+        const storeName = document.getElementById("settings-store-name").value.trim();
+        const whatsappPhone = document.getElementById("settings-whatsapp").value.trim().replace(/[^0-9]/g, "");
+        const supportEmail = document.getElementById("settings-email").value.trim();
+        const upiId = document.getElementById("settings-upi").value.trim();
+        const theme = form.elements["settings-theme-select"].value;
+
+        const updatedSettings = {
+          storeName,
+          whatsappPhone,
+          supportEmail,
+          upiId,
+          theme
+        };
+
+        // Save settings to localStorage
+        saveStoreSettings(updatedSettings);
+
+        // Visual success feedback
+        const submitBtn = document.getElementById("save-settings-submit-btn");
+        const originalText = submitBtn.innerText;
+        submitBtn.innerText = "Settings Saved successfully!";
+        submitBtn.className = "w-full py-3.5 bg-emerald-600 text-white text-xs uppercase tracking-widest font-semibold rounded-xl transition-all focus:outline-none";
+
+        setTimeout(() => {
+          submitBtn.innerText = originalText;
+          submitBtn.className = "w-full py-3.5 bg-[#1A1A1A] hover:bg-[#C5A880] hover:text-[#1A1A1A] text-white text-xs uppercase tracking-widest font-semibold transition-all duration-300 rounded-xl focus:outline-none shadow-md";
+          
+          // Re-render admin console tab to load modified states
+          renderAdminConsole();
+        }, 1500);
+      });
+    }
+  }
+
   // --- CSV Exporter Method ---
   function exportOrdersToCSV(orders) {
     let csv = "Order ID,Customer Name,Phone,Address,City,State,Pincode,Item Title,Size,Quantity,Total Payable,Payment Method,Status,Date\n";
     
     orders.forEach(order => {
-      // Escape commas in address/details
       const cleanName = order.customerName.replace(/"/g, '""');
       const cleanAddress = order.address.replace(/"/g, '""');
       const cleanCity = order.city.replace(/"/g, '""');
@@ -1159,7 +1363,6 @@ export function initAdmin(containerId) {
       <body>
         <div class="container">
           
-          <!-- Packing Slip Header -->
           <div class="header">
             <div class="brand-logo-container">
               <div class="brand-initials">FP</div>
@@ -1177,7 +1380,6 @@ export function initAdmin(containerId) {
             </div>
           </div>
 
-          <!-- Billing & Shipping Details -->
           <div class="address-section">
             <div>
               <div class="address-title">From (Sender)</div>
@@ -1195,7 +1397,6 @@ export function initAdmin(containerId) {
             </div>
           </div>
 
-          <!-- Items Table -->
           <div class="table-container">
             <table>
               <thead>
@@ -1212,7 +1413,6 @@ export function initAdmin(containerId) {
             </table>
           </div>
 
-          <!-- Pricing summary -->
           <div class="pricing-summary">
             <div class="pricing-table">
               <div class="pricing-row">
@@ -1230,13 +1430,11 @@ export function initAdmin(containerId) {
             </div>
           </div>
 
-          <!-- Footer Info -->
           <div class="footer">
             Thank you for shopping at ${storeConfig.storeName} &bull; Private Atelier Concierge Services
             <div style="font-size: 7px; color: #C5A880; margin-top: 6px;">DISPATCHED FROM Taj Mansingh Boulevard Enclave. FOR INQUIRIES EMAIL: ${storeConfig.contact.email}</div>
           </div>
 
-          <!-- Print Slip Trigger Button -->
           <div class="print-btn-container">
             <button class="print-btn" onclick="window.print();">Print Packing Slip</button>
           </div>
@@ -1375,7 +1573,6 @@ export function initAdmin(containerId) {
 
     cancelBtn.addEventListener('click', () => {
       cleanup();
-      // Reset hash if canceled, showing storefront
       history.pushState("", document.title, window.location.pathname + window.location.search);
       const storefront = document.getElementById('storefront-view');
       if (storefront) {
@@ -1425,7 +1622,6 @@ export function initAdmin(containerId) {
   }
 
   window.addEventListener('hashchange', checkRoute);
-  // Listen for external updates (e.g. mock orders placed from storefront checkout)
   window.addEventListener('fp_orders_updated', () => {
     if (isAuthenticated() && window.location.hash === '#admin') {
       renderAdminConsole();

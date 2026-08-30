@@ -12,11 +12,112 @@
   -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FashionPalette - Luxury Atelier Storefront</title>
+  <title>FashionPalette | Haute Couture, Festive & Pret-A-Porter 2026</title>
   <meta name="description" content="Discover hand-crafted bespoke apparel at FashionPalette. Ultra-luxury e-commerce client.">
   
+  <!-- OpenGraph Social Metatags -->
+  <meta property="og:title" content="FashionPalette | Haute Couture, Festive & Pret-A-Porter 2026" />
+  <meta property="og:description" content="Discover hand-crafted bespoke apparel at FashionPalette. Ultra-luxury e-commerce client." />
+  <meta property="og:image" content="https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1200&h=630&q=80" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Circular Monogram Inline SVG Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='none' stroke='%231A1A1A' stroke-width='4'/%3E%3Ctext x='30' y='62' font-family='serif' font-size='44' font-weight='bold' fill='%231A1A1A'%3EF%3C/text%3E%3Ctext x='50' y='68' font-family='serif' font-size='44' font-style='italic' fill='%23C5A880'%3EP%3C/text%3E%3C/svg%3E" />
+
   <!-- Master Stylesheet (Variables & Custom Utilities) -->
   <link rel="stylesheet" href="./07-STORE_SETTINGS_AND_THEME_COLORS/theme_colors.css">
+
+  <!-- Theme engine & settings auto-synchronization script -->
+  <script type="module">
+    import { storeConfig } from './07-STORE_SETTINGS_AND_THEME_COLORS/store_config.js';
+
+    function applyStoreTheme() {
+      const settings = JSON.parse(localStorage.getItem('fp_store_settings') || '{}');
+      const theme = settings.theme || 'Royale Noir';
+      const root = document.documentElement;
+      
+      if (theme === 'Festive Crimson') {
+        root.style.setProperty('--fp-primary', '#5C061E');
+        root.style.setProperty('--fp-accent', '#E2B13C');
+        root.style.setProperty('--fp-bg-base', '#FFF5F6');
+        root.style.setProperty('--fp-surface', '#FFFFFF');
+        root.style.setProperty('--fp-border', '#F2D5D9');
+      } else if (theme === 'Emerald Atelier') {
+        root.style.setProperty('--fp-primary', '#0F3A2E');
+        root.style.setProperty('--fp-accent', '#D4AF37');
+        root.style.setProperty('--fp-bg-base', '#F4F8F6');
+        root.style.setProperty('--fp-surface', '#FFFFFF');
+        root.style.setProperty('--fp-border', '#D0DFD9');
+      } else {
+        // Royale Noir
+        root.style.setProperty('--fp-primary', '#1A1A1A');
+        root.style.setProperty('--fp-accent', '#C5A880');
+        root.style.setProperty('--fp-bg-base', '#F9F8F6');
+        root.style.setProperty('--fp-surface', '#FFFFFF');
+        root.style.setProperty('--fp-border', '#E5E3DF');
+      }
+    }
+
+    function syncStoreSettings() {
+      const settings = JSON.parse(localStorage.getItem('fp_store_settings') || '{}');
+      if (settings.storeName) {
+        storeConfig.storeName = settings.storeName;
+        // Generate logo initials
+        const w = settings.storeName.trim().split(/\s+/);
+        if (w.length >= 2) {
+          storeConfig.logoInitials = w[0][0].toUpperCase() + w[1][0].toUpperCase();
+        } else if (settings.storeName.length >= 2) {
+          storeConfig.logoInitials = settings.storeName[0].toUpperCase() + settings.storeName[1].toUpperCase();
+        }
+      }
+      if (settings.whatsappPhone) {
+        storeConfig.contact.phone = settings.whatsappPhone;
+      }
+      if (settings.supportEmail) {
+        storeConfig.contact.email = settings.supportEmail;
+      }
+      if (settings.upiId) {
+        storeConfig.upiId = settings.upiId;
+      }
+      applyStoreTheme();
+    }
+
+    // Apply settings on load
+    syncStoreSettings();
+
+    // Listen for setting changes to trigger immediate UI re-renders without reloading
+    window.addEventListener('fp_settings_updated', () => {
+      syncStoreSettings();
+
+      // Dynamic re-render of components
+      import('./01-WEBSITE_HEADER_AND_LOGO/header.js').then(m => m.initHeader('header-container'));
+      import('./02-HERO_BANNER_AND_FESTIVE_OFFERS/hero.js').then(m => m.initHero('hero-container'));
+      import('./04-CHECKOUT_AND_COD_FORM/checkout.js').then(m => m.initCheckout('checkout-container'));
+      import('./06-FOOTER_AND_FLOATING_WHATSAPP/footer.js').then(m => {
+        const container = document.getElementById("footer-container");
+        if (container) {
+          container.dataset.initialized = "false";
+          m.init();
+        }
+      });
+    });
+
+    // Intercept checkout VPA display and inject custom VPA from settings
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#pay-upi-card')) {
+        setTimeout(() => {
+          const upiIdEl = document.querySelector('#upi-details-box p.font-semibold.text-\\[\\#C5A880\\]');
+          if (upiIdEl) {
+            const settings = JSON.parse(localStorage.getItem('fp_store_settings') || '{}');
+            if (settings.upiId) {
+              upiIdEl.innerText = settings.upiId;
+            }
+          }
+        }, 50);
+      }
+    });
+  </script>
 
   <!-- Tailwind CSS Play CDN (v3.4.1) -->
   <script src="https://cdn.tailwindcss.com"></script>

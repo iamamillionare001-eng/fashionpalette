@@ -17,33 +17,27 @@
 
 :root {
   /* ==================================================================
-     COLOR VARIABLES (HEX CODES)
-     Change these hex values to customize your brand palette.
+     DYNAMIC ATELIER THEME VARIABLES
+     Configure your theme accent color values here.
      ================================================================== */
-  
-  /* Primary App Background: Warm Alabaster / Soft Linen */
-  --color-bg-primary: #F9F8F6;
-  
-  /* Main text and key UI elements: Deep Charcoal Slate */
-  --color-text-primary: #1A1A1A;
-  
-  /* Secondary text (subtitles, helper text): Muted Charcoal */
-  --color-text-secondary: #5A5A5A;
-  
-  /* Card Surfaces & Dynamic containers: Pure White */
-  --color-surface-card: #FFFFFF;
-  
-  /* Border Accents & Subtle dividers: Warm Subtle Border */
-  --color-border-subtle: #E5E3DF;
-  
-  /* Primary Call To Action (CTA) Button Fill: Deep Charcoal Slate */
-  --color-cta-fill: #1A1A1A;
-  
-  /* Primary Call To Action (CTA) Button Text: Pure White */
-  --color-cta-text: #FFFFFF;
+  --fp-primary: #1A1A1A;
+  --fp-accent: #C5A880;
+  --fp-bg-base: #F9F8F6;
+  --fp-surface: #FFFFFF;
+  --fp-border: #E5E3DF;
 
-  /* Accent Highlight (Luxury Gold / Champagne) */
-  --color-accent-gold: #C5A880;
+  /* ==================================================================
+     COMPATIBILITY STYLE MAP
+     Connects legacy system styles to customizable variables.
+     ================================================================== */
+  --color-bg-primary: var(--fp-bg-base);
+  --color-text-primary: var(--fp-primary);
+  --color-text-secondary: #5A5A5A;
+  --color-surface-card: var(--fp-surface);
+  --color-border-subtle: var(--fp-border);
+  --color-cta-fill: var(--fp-primary);
+  --color-cta-text: #FFFFFF;
+  --color-accent-gold: var(--fp-accent);
 
   /* State colors */
   --color-success: #2E7D32;
