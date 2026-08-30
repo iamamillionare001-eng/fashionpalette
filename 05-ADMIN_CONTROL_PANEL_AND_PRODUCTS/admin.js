@@ -5,6 +5,7 @@
  */
 
 import { storeConfig } from '../07-STORE_SETTINGS_AND_THEME_COLORS/store_config.js';
+import { initHero, getHeroConfig } from '../02-HERO_BANNER_AND_FESTIVE_OFFERS/hero.js';
 
 export function initAdmin(containerId) {
   const container = document.getElementById(containerId);
@@ -89,39 +90,85 @@ export function initAdmin(containerId) {
             </form>
           </div>
 
-          <!-- Quick Store Configuration Stats (Right) -->
-          <div class="lg:col-span-6 bg-[#F9F8F6] border border-[#E5E3DF] p-6 rounded-md space-y-6">
-            <h3 class="text-md uppercase tracking-wider text-[#1A1A1A] font-bold border-b border-[#E5E3DF] pb-3 bg-white px-6 py-4 rounded-t-md -mx-6 -mt-6">
-              Store Quick-Stats
-            </h3>
+          <!-- Right Column -->
+          <div class="lg:col-span-6 space-y-8">
+            <!-- Manage Hero & Seasonal Banners -->
+            <div class="bg-white border border-[#E5E3DF] p-6 rounded-md space-y-6">
+              <h3 class="text-md uppercase tracking-wider text-[#1A1A1A] font-bold border-b border-[#E5E3DF] pb-3">
+                Manage Hero & Seasonal Banners
+              </h3>
+              
+              <form id="hero-manager-form" class="space-y-4" onsubmit="event.preventDefault();">
+                <div>
+                  <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Tagline (e.g. "Festive Collection 2026")</label>
+                  <input type="text" id="admin-hero-tagline" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-md focus:outline-none focus:border-[#C5A880]" />
+                </div>
+                
+                <div>
+                  <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Main Headline</label>
+                  <input type="text" id="admin-hero-headline" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-md focus:outline-none focus:border-[#C5A880]" />
+                </div>
 
-            <div class="grid grid-cols-2 gap-4">
-              <div class="bg-white p-4 border border-[#E5E3DF] rounded-md">
-                <p class="text-[9px] uppercase tracking-widest text-[#5A5A5A]">Total Products</p>
-                <p class="text-2xl font-light text-[#1A1A1A] mt-1">3 Active</p>
-              </div>
-              <div class="bg-white p-4 border border-[#E5E3DF] rounded-md">
-                <p class="text-[9px] uppercase tracking-widest text-[#5A5A5A]">Total Revenue</p>
-                <p class="text-2xl font-light text-[#C5A880] mt-1">${storeConfig.currency}1,34,500</p>
-              </div>
+                <div>
+                  <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Subtitle / Description</label>
+                  <textarea id="admin-hero-subtitle" rows="3" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-md focus:outline-none focus:border-[#C5A880] resize-none"></textarea>
+                </div>
+
+                <div>
+                  <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Active Promo Code & Badge Text</label>
+                  <input type="text" id="admin-hero-promo" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-md focus:outline-none focus:border-[#C5A880]" />
+                </div>
+
+                <div>
+                  <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Hero Image URL</label>
+                  <input type="text" id="admin-hero-image" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-md focus:outline-none focus:border-[#C5A880]" />
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                  <button type="button" id="admin-hero-reset-btn" class="py-3 border border-[#E5E3DF] text-[#5A5A5A] text-xs uppercase tracking-widest font-semibold hover:bg-stone-50 transition-colors rounded-md focus:outline-none">
+                    Reset to Defaults
+                  </button>
+                  <button type="submit" id="admin-hero-save-btn" class="py-3 bg-[#1A1A1A] text-white text-xs uppercase tracking-widest font-semibold hover:bg-[#C5A880] hover:text-[#1A1A1A] transition-colors duration-300 rounded-md">
+                    Save Hero Changes
+                  </button>
+                </div>
+              </form>
             </div>
 
-            <!-- Configuration Summary Table -->
-            <div class="bg-white border border-[#E5E3DF] rounded-md p-4 space-y-3">
-              <p class="text-[10px] uppercase tracking-wider text-[#1A1A1A] font-bold">Metadata Configurations</p>
-              
-              <div class="space-y-2 text-xs text-[#1A1A1A]">
-                <div class="flex justify-between border-b border-[#E5E3DF] pb-1.5">
-                  <span class="text-[#5A5A5A]">Store Name:</span>
-                  <span class="font-medium">${storeConfig.storeName}</span>
+            <!-- Quick Store Configuration Stats -->
+            <div class="bg-[#F9F8F6] border border-[#E5E3DF] p-6 rounded-md space-y-6">
+              <h3 class="text-md uppercase tracking-wider text-[#1A1A1A] font-bold border-b border-[#E5E3DF] pb-3 bg-white px-6 py-4 rounded-t-md -mx-6 -mt-6">
+                Store Quick-Stats
+              </h3>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div class="bg-white p-4 border border-[#E5E3DF] rounded-md">
+                  <p class="text-[9px] uppercase tracking-widest text-[#5A5A5A]">Total Products</p>
+                  <p class="text-2xl font-light text-[#1A1A1A] mt-1">3 Active</p>
                 </div>
-                <div class="flex justify-between border-b border-[#E5E3DF] pb-1.5">
-                  <span class="text-[#5A5A5A]">Concierge Email:</span>
-                  <span class="font-medium">${storeConfig.contact.email}</span>
+                <div class="bg-white p-4 border border-[#E5E3DF] rounded-md">
+                  <p class="text-[9px] uppercase tracking-widest text-[#5A5A5A]">Total Revenue</p>
+                  <p class="text-2xl font-light text-[#C5A880] mt-1">${storeConfig.currency}1,34,500</p>
                 </div>
-                <div class="flex justify-between">
-                  <span class="text-[#5A5A5A]">Active Currency:</span>
-                  <span class="font-medium">${storeConfig.currency} (${storeConfig.currencyCode})</span>
+              </div>
+
+              <!-- Configuration Summary Table -->
+              <div class="bg-white border border-[#E5E3DF] rounded-md p-4 space-y-3">
+                <p class="text-[10px] uppercase tracking-wider text-[#1A1A1A] font-bold">Metadata Configurations</p>
+                
+                <div class="space-y-2 text-xs text-[#1A1A1A]">
+                  <div class="flex justify-between border-b border-[#E5E3DF] pb-1.5">
+                    <span class="text-[#5A5A5A]">Store Name:</span>
+                    <span class="font-medium">${storeConfig.storeName}</span>
+                  </div>
+                  <div class="flex justify-between border-b border-[#E5E3DF] pb-1.5">
+                    <span class="text-[#5A5A5A]">Concierge Email:</span>
+                    <span class="font-medium">${storeConfig.contact.email}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-[#5A5A5A]">Active Currency:</span>
+                    <span class="font-medium">${storeConfig.currency} (${storeConfig.currencyCode})</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -136,6 +183,86 @@ export function initAdmin(containerId) {
     const logoutBtn = document.getElementById('admin-logout-btn');
     if (logoutBtn) {
       logoutBtn.addEventListener('click', handleLogout);
+    }
+
+    // Populate Hero Manager fields from localStorage config
+    const heroConfig = getHeroConfig();
+    const taglineInput = document.getElementById('admin-hero-tagline');
+    const headlineInput = document.getElementById('admin-hero-headline');
+    const subtitleInput = document.getElementById('admin-hero-subtitle');
+    const promoInput = document.getElementById('admin-hero-promo');
+    const imageInput = document.getElementById('admin-hero-image');
+
+    if (taglineInput) taglineInput.value = heroConfig.headlineTag || '';
+    if (headlineInput) headlineInput.value = heroConfig.mainHeading || '';
+    if (subtitleInput) subtitleInput.value = heroConfig.subHeading || '';
+    if (promoInput) promoInput.value = heroConfig.promoBadgeText || '';
+    if (imageInput) imageInput.value = heroConfig.heroImageUrl || '';
+
+    // Register Save listener
+    const saveHeroBtn = document.getElementById('admin-hero-save-btn');
+    if (saveHeroBtn) {
+      saveHeroBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const updatedConfig = {
+          headlineTag: taglineInput.value.trim(),
+          mainHeading: headlineInput.value.trim(),
+          subHeading: subtitleInput.value.trim(),
+          promoBadgeText: promoInput.value.trim(),
+          heroImageUrl: imageInput.value.trim(),
+          primaryCtaText: heroConfig.primaryCtaText || "Shop Festive Edit",
+          primaryCtaLink: heroConfig.primaryCtaLink || "#festive",
+          secondaryCtaText: heroConfig.secondaryCtaText || "Explore Collection",
+          secondaryCtaLink: heroConfig.secondaryCtaLink || "#catalog"
+        };
+        localStorage.setItem('fp_hero_config', JSON.stringify(updatedConfig));
+        
+        // Immediately re-render storefront hero
+        initHero('hero-container');
+        
+        // Visual feedback
+        const originalText = saveHeroBtn.innerText;
+        saveHeroBtn.innerText = "Saved Successfully!";
+        saveHeroBtn.classList.remove('bg-[#1A1A1A]', 'text-white');
+        saveHeroBtn.classList.add('bg-emerald-600', 'text-white');
+        setTimeout(() => {
+          saveHeroBtn.innerText = originalText;
+          saveHeroBtn.classList.remove('bg-emerald-600');
+          saveHeroBtn.classList.add('bg-[#1A1A1A]');
+        }, 1500);
+      });
+    }
+
+    // Register Reset listener
+    const resetHeroBtn = document.getElementById('admin-hero-reset-btn');
+    if (resetHeroBtn) {
+      resetHeroBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (confirm("Are you sure you want to reset the hero banner to factory defaults?")) {
+          const DEFAULT_HERO_CONFIG = {
+            headlineTag: "Festive Collection 2026",
+            mainHeading: "Grand Festive Collection 2026",
+            subHeading: "Celebrate Ganesh Chaturthi and upcoming festivities in pure elegance. Hand-crafted designer kurtas, festive sarees, and coordinated couple sets delivered to your doorstep.",
+            promoBadgeText: "Festive Offer: Use code FESTIVE2026 for 15% off",
+            heroImageUrl: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1200&q=80",
+            primaryCtaText: "Shop Festive Edit",
+            primaryCtaLink: "#festive",
+            secondaryCtaText: "Explore Collection",
+            secondaryCtaLink: "#catalog"
+          };
+          localStorage.setItem('fp_hero_config', JSON.stringify(DEFAULT_HERO_CONFIG));
+          
+          // Re-populate fields
+          if (taglineInput) taglineInput.value = DEFAULT_HERO_CONFIG.headlineTag;
+          if (headlineInput) headlineInput.value = DEFAULT_HERO_CONFIG.mainHeading;
+          if (subtitleInput) subtitleInput.value = DEFAULT_HERO_CONFIG.subHeading;
+          if (promoInput) promoInput.value = DEFAULT_HERO_CONFIG.promoBadgeText;
+          if (imageInput) imageInput.value = DEFAULT_HERO_CONFIG.heroImageUrl;
+
+          // Immediately re-render storefront hero
+          initHero('hero-container');
+        }
+      });
     }
   }
 
