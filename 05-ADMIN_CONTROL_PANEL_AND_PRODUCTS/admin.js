@@ -72,11 +72,59 @@ function saveStoreSettings(settings) {
   window.dispatchEvent(new CustomEvent("fp_settings_updated"));
 }
 
+// Helper to compress image file using canvas and callback with Base64 URL
+function compressAndConvertToBase64(file, callback) {
+  const reader = new FileReader();
+  reader.readAsDataURL(file);
+  reader.onload = (event) => {
+    const img = new Image();
+    img.src = event.target.result;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX_WIDTH = 800;
+      const MAX_HEIGHT = 800;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > MAX_WIDTH) {
+          height *= MAX_WIDTH / width;
+          width = MAX_WIDTH;
+        }
+      } else {
+        if (height > MAX_HEIGHT) {
+          width *= MAX_HEIGHT / height;
+          height = MAX_HEIGHT;
+        }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+      callback(compressedBase64);
+    };
+  };
+}
+
 export function initAdmin(containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
 
   let activeTab = "dashboard"; // "dashboard" | "products" | "ledger" | "settings"
+
+  // Product creation form state (persists across re-renders within the admin session)
+  const defaultApparelSizes = ["XS", "S", "M", "L", "XL", "XXL", "3XL", "Free Size"];
+  const defaultCoupleSizes = ["Women M / Men L", "Women L / Men XL", "Custom Pair"];
+  const selectedSizes = new Set(["M", "L", "XL"]); // default selections
+  const customSizes = []; // user added custom sizes
+  let uploadedMainImage = ""; 
+  let uploadedGalleryImages = []; 
+  let mainImageMode = "upload"; // "upload" | "url"
+  let galleryImageMode = "upload"; // "upload" | "url"
+
+  // Order ledger expand state
+  const expandedOrders = new Set();
 
   function isAuthenticated() {
     return sessionStorage.getItem('admin_authenticated') === 'true';
@@ -112,11 +160,20 @@ export function initAdmin(containerId) {
       </div>
 
       <!-- Luxury Tab Sub-Navigation Bar (4 Tabs) -->
-      <div class="border-b border-[#E5E3DF] bg-white w-full sticky top-[68px] z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-8">
+      <style>
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: none;  /* Firefox */
+        }
+      </style>
+      <div class="border-b border-[#E5E3DF] bg-white w-full sticky top-[60px] sm:top-[68px] z-40 overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-6 sm:space-x-8 overflow-x-auto scrollbar-hide flex-nowrap py-1 sm:py-0">
           <button 
             id="tab-btn-dashboard" 
-            class="py-4.5 text-[10px] sm:text-xs uppercase tracking-widest font-semibold border-b-2 transition-all focus:outline-none ${
+            class="flex-shrink-0 py-4 sm:py-4.5 text-[10px] sm:text-xs uppercase tracking-widest font-semibold border-b-2 transition-all focus:outline-none min-h-[48px] ${
               activeTab === "dashboard" 
                 ? "border-[#1A1A1A] text-[#1A1A1A]" 
                 : "border-transparent text-[#8A8A8A] hover:text-[#1A1A1A]"
@@ -126,7 +183,7 @@ export function initAdmin(containerId) {
           </button>
           <button 
             id="tab-btn-products" 
-            class="py-4.5 text-[10px] sm:text-xs uppercase tracking-widest font-semibold border-b-2 transition-all focus:outline-none ${
+            class="flex-shrink-0 py-4 sm:py-4.5 text-[10px] sm:text-xs uppercase tracking-widest font-semibold border-b-2 transition-all focus:outline-none min-h-[48px] ${
               activeTab === "products" 
                 ? "border-[#1A1A1A] text-[#1A1A1A]" 
                 : "border-transparent text-[#8A8A8A] hover:text-[#1A1A1A]"
@@ -136,7 +193,7 @@ export function initAdmin(containerId) {
           </button>
           <button 
             id="tab-btn-ledger" 
-            class="py-4.5 text-[10px] sm:text-xs uppercase tracking-widest font-semibold border-b-2 transition-all focus:outline-none flex items-center ${
+            class="flex-shrink-0 py-4 sm:py-4.5 text-[10px] sm:text-xs uppercase tracking-widest font-semibold border-b-2 transition-all focus:outline-none flex items-center min-h-[48px] ${
               activeTab === "ledger" 
                 ? "border-[#1A1A1A] text-[#1A1A1A]" 
                 : "border-transparent text-[#8A8A8A] hover:text-[#1A1A1A]"
@@ -151,7 +208,7 @@ export function initAdmin(containerId) {
           </button>
           <button 
             id="tab-btn-settings" 
-            class="py-4.5 text-[10px] sm:text-xs uppercase tracking-widest font-semibold border-b-2 transition-all focus:outline-none ${
+            class="flex-shrink-0 py-4 sm:py-4.5 text-[10px] sm:text-xs uppercase tracking-widest font-semibold border-b-2 transition-all focus:outline-none min-h-[48px] ${
               activeTab === "settings" 
                 ? "border-[#1A1A1A] text-[#1A1A1A]" 
                 : "border-transparent text-[#8A8A8A] hover:text-[#1A1A1A]"
@@ -420,16 +477,16 @@ export function initAdmin(containerId) {
             </h3>
           </div>
 
-          <form id="add-product-form" class="space-y-4" onsubmit="event.preventDefault();">
+          <form id="add-product-form" class="space-y-5" onsubmit="event.preventDefault();">
             <div>
               <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Product Title</label>
-              <input type="text" id="prod-title" required placeholder="e.g. Royal Silk Lehenga" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+              <input type="text" id="prod-title" required placeholder="e.g. Royal Silk Lehenga" class="w-full min-h-[48px] bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-3 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
             </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Category</label>
-                <select id="prod-category" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]">
+                <select id="prod-category" class="w-full min-h-[48px] bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-3 text-xs rounded-xl focus:outline-none focus:border-[#C5A880] cursor-pointer">
                   <option value="Women">Women</option>
                   <option value="Men">Men</option>
                   <option value="Couple">Couple</option>
@@ -440,53 +497,131 @@ export function initAdmin(containerId) {
               </div>
               <div>
                 <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Badge (Optional)</label>
-                <input type="text" id="prod-badge" placeholder="e.g. Bestseller" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+                <input type="text" id="prod-badge" placeholder="e.g. Bestseller" class="w-full min-h-[48px] bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-3 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
               </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Selling Price (₹)</label>
-                <input type="number" id="prod-price" required placeholder="2499" min="0" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+                <input type="number" id="prod-price" required placeholder="2499" min="0" class="w-full min-h-[48px] bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-3 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
               </div>
               <div>
                 <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Original Price / MRP (₹)</label>
-                <input type="number" id="prod-mrp" required placeholder="4999" min="0" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+                <input type="number" id="prod-mrp" required placeholder="4999" min="0" class="w-full min-h-[48px] bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-3 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
               </div>
             </div>
 
-            <div>
-              <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Sizes (Comma separated)</label>
-              <input type="text" id="prod-sizes" required placeholder="e.g. M, L, XL or Free Size" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+            <!-- Size selection chips -->
+            <div class="space-y-3 border-t border-[#E5E3DF]/50 pt-3">
+              <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold">Sizes (Select Active Tags)</label>
+              
+              <div>
+                <p class="text-[8px] uppercase tracking-widest text-[#8A8A8A] font-semibold mb-1">Standard Sizes</p>
+                <div class="flex flex-wrap gap-1.5" id="standard-sizes-chips"></div>
+              </div>
+
+              <div>
+                <p class="text-[8px] uppercase tracking-widest text-[#8A8A8A] font-semibold mb-1">Couple / Pair Pre-sets</p>
+                <div class="flex flex-wrap gap-1.5" id="couple-sizes-chips"></div>
+              </div>
+
+              <div class="flex items-center gap-2 pt-1">
+                <button type="button" id="quick-add-size-btn" class="px-3.5 py-2.5 border border-[#C5A880] text-[#C5A880] hover:bg-[#C5A880] hover:text-[#1A1A1A] text-[9px] font-semibold uppercase tracking-widest rounded-xl transition-all duration-300 flex items-center gap-1.5 focus:outline-none min-h-[40px]">
+                  <span>+ Custom</span>
+                </button>
+                <div id="custom-size-input-wrapper" class="hidden flex items-center gap-2">
+                  <input type="text" id="custom-size-input" placeholder="e.g. 4XL" class="bg-[#F9F8F6] border border-[#C5A880] px-3 py-1.5 text-xs rounded-xl focus:outline-none w-24 h-[40px]" />
+                  <button type="button" id="confirm-custom-size-btn" class="px-3 py-2 bg-[#1A1A1A] text-white text-[10px] font-semibold uppercase tracking-widest rounded-xl hover:bg-[#C5A880] hover:text-[#1A1A1A] transition-all h-[40px]">Add</button>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Main Image URL</label>
-              <input type="url" id="prod-image-main" required placeholder="https://unsplash.com/..." class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+            <!-- Main Product Image -->
+            <div class="space-y-2 border-t border-[#E5E3DF]/50 pt-3">
+              <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold">Main Product Image</label>
+              <div class="flex gap-2 pb-1.5">
+                <button type="button" id="main-img-mode-upload" class="flex-1 px-3 py-2 text-[9px] font-semibold uppercase tracking-widest border transition-all rounded-xl focus:outline-none min-h-[40px] ${
+                  mainImageMode === 'upload' ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-white text-[#5A5A5A] border-[#E5E3DF]'
+                }">Upload File</button>
+                <button type="button" id="main-img-mode-url" class="flex-1 px-3 py-2 text-[9px] font-semibold uppercase tracking-widest border transition-all rounded-xl focus:outline-none min-h-[40px] ${
+                  mainImageMode === 'url' ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-white text-[#5A5A5A] border-[#E5E3DF]'
+                }">Image URL Link</button>
+              </div>
+
+              <!-- Dropzone for Upload Mode -->
+              <div id="main-image-upload-zone" class="${mainImageMode === 'upload' ? '' : 'hidden'}">
+                <div class="border-2 border-dashed border-[#C5A880]/40 rounded-2xl p-6 text-center cursor-pointer bg-[#F9F8F6] hover:bg-[#C5A880]/5 hover:border-[#C5A880] transition-all relative min-h-[120px] flex flex-col justify-center items-center" id="main-image-dropzone">
+                  <input type="file" id="main-image-file-input" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                  <div class="space-y-1.5 pointer-events-none">
+                    <svg class="w-7 h-7 text-[#C5A880] mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p class="text-[9px] font-semibold uppercase tracking-wider text-[#1A1A1A]">Drag & Drop or Click to Upload</p>
+                    <p class="text-[8px] text-[#8A8A8A]">Device camera/photo library supported</p>
+                  </div>
+                </div>
+                <!-- Thumbnail Preview -->
+                <div id="main-image-preview-container" class="mt-3 hidden"></div>
+              </div>
+
+              <!-- Input for URL Mode -->
+              <div id="main-image-url-zone" class="${mainImageMode === 'url' ? '' : 'hidden'}">
+                <input type="url" id="prod-image-main" placeholder="https://unsplash.com/..." class="w-full min-h-[48px] bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-3 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+              </div>
             </div>
 
-            <div>
-              <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Gallery Image URLs (Comma separated)</label>
-              <input type="text" id="prod-image-gallery" placeholder="https://..., https://..." class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+            <!-- Gallery Images -->
+            <div class="space-y-2 border-t border-[#E5E3DF]/50 pt-3">
+              <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold">Gallery Images</label>
+              <div class="flex gap-2 pb-1.5">
+                <button type="button" id="gallery-img-mode-upload" class="flex-1 px-3 py-2 text-[9px] font-semibold uppercase tracking-widest border transition-all rounded-xl focus:outline-none min-h-[40px] ${
+                  galleryImageMode === 'upload' ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-white text-[#5A5A5A] border-[#E5E3DF]'
+                }">Upload Files</button>
+                <button type="button" id="gallery-img-mode-url" class="flex-1 px-3 py-2 text-[9px] font-semibold uppercase tracking-widest border transition-all rounded-xl focus:outline-none min-h-[40px] ${
+                  galleryImageMode === 'url' ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-white text-[#5A5A5A] border-[#E5E3DF]'
+                }">Image URL Links</button>
+              </div>
+
+              <!-- Dropzone for Upload Mode -->
+              <div id="gallery-image-upload-zone" class="${galleryImageMode === 'upload' ? '' : 'hidden'}">
+                <div class="border-2 border-dashed border-[#C5A880]/40 rounded-2xl p-6 text-center cursor-pointer bg-[#F9F8F6] hover:bg-[#C5A880]/5 hover:border-[#C5A880] transition-all relative min-h-[120px] flex flex-col justify-center items-center" id="gallery-image-dropzone">
+                  <input type="file" id="gallery-image-file-input" accept="image/*" multiple class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                  <div class="space-y-1.5 pointer-events-none">
+                    <svg class="w-7 h-7 text-[#C5A880] mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p class="text-[9px] font-semibold uppercase tracking-wider text-[#1A1A1A]">Drag & Drop or Click to Upload Multiple</p>
+                    <p class="text-[8px] text-[#8A8A8A]">Camera role / multiple files supported</p>
+                  </div>
+                </div>
+                <!-- Thumbnails Container -->
+                <div id="gallery-images-preview-container" class="grid grid-cols-4 gap-2 mt-3 hidden"></div>
+              </div>
+
+              <!-- Input for URL Mode -->
+              <div id="gallery-image-url-zone" class="${galleryImageMode === 'url' ? '' : 'hidden'}">
+                <input type="text" id="prod-image-gallery" placeholder="https://..., https://..." class="w-full min-h-[48px] bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-3 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+              </div>
             </div>
 
-            <div>
+            <div class="border-t border-[#E5E3DF]/50 pt-3">
               <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Product Description</label>
-              <textarea id="prod-desc" required placeholder="Detailed description of product fit and drape..." rows="3" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880] resize-none"></textarea>
+              <textarea id="prod-desc" required placeholder="Detailed description of product fit and drape..." rows="3" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-3 text-xs rounded-xl focus:outline-none focus:border-[#C5A880] resize-none"></textarea>
             </div>
 
             <div>
               <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Fabric & Composition (Optional)</label>
-              <input type="text" id="prod-fabric" placeholder="e.g. 100% Pure Georgette Silk. Dry clean only." class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+              <input type="text" id="prod-fabric" placeholder="e.g. 100% Pure Georgette Silk. Dry clean only." class="w-full min-h-[48px] bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-3 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
             </div>
 
-            <button type="submit" id="add-product-submit-btn" class="w-full py-3.5 bg-[#1A1A1A] hover:bg-[#C5A880] hover:text-[#1A1A1A] text-white text-xs uppercase tracking-widest font-semibold transition-all duration-300 rounded-xl focus:outline-none shadow-md">
+            <button type="submit" id="add-product-submit-btn" class="w-full min-h-[48px] bg-[#1A1A1A] hover:bg-[#C5A880] hover:text-[#1A1A1A] text-white text-xs uppercase tracking-widest font-semibold transition-all duration-300 rounded-xl focus:outline-none shadow-md flex items-center justify-center">
               Add to Storefront Catalog
             </button>
           </form>
         </div>
 
-        <!-- Right: Active Products Inventory Table (col-span-7) -->
+        <!-- Right: Active Products Inventory (col-span-7) -->
         <div class="lg:col-span-7 bg-white border border-[#E5E3DF] p-6 rounded-2xl shadow-sm overflow-hidden">
           <div>
             <h3 class="text-sm uppercase tracking-wider text-[#1A1A1A] font-bold border-b border-[#E5E3DF] pb-3">
@@ -494,7 +629,8 @@ export function initAdmin(containerId) {
             </h3>
           </div>
 
-          <div class="overflow-x-auto mt-4">
+          <!-- Desktop Inventory Table View -->
+          <div class="hidden md:block overflow-x-auto mt-4">
             <table class="min-w-full divide-y divide-[#E5E3DF]">
               <thead>
                 <tr class="text-[9px] uppercase tracking-widest font-semibold text-[#8A8A8A] text-left">
@@ -539,7 +675,7 @@ export function initAdmin(containerId) {
                       <td class="py-4">
                         <button 
                           data-toggle-id="${product.id}"
-                          class="stock-toggle-badge px-3 py-1.5 rounded-full text-[9px] uppercase tracking-widest font-bold border transition-all ${
+                          class="stock-toggle-badge px-4 py-2 min-h-[48px] flex items-center justify-center rounded-full text-[9px] uppercase tracking-widest font-bold border transition-all ${
                             product.inStock 
                               ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' 
                               : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
@@ -553,7 +689,7 @@ export function initAdmin(containerId) {
                       <td class="py-4 text-right">
                         <button 
                           data-delete-id="${product.id}"
-                          class="delete-product-btn text-rose-600 hover:text-rose-900 border border-rose-200 hover:border-rose-600 rounded-lg px-2.5 py-1.5 bg-rose-50/50 hover:bg-rose-50 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none"
+                          class="delete-product-btn min-h-[48px] text-rose-600 hover:text-rose-900 border border-rose-200 hover:border-rose-600 rounded-xl px-4 bg-rose-50/50 hover:bg-rose-50 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none"
                         >
                           Delete
                         </button>
@@ -564,10 +700,331 @@ export function initAdmin(containerId) {
               </tbody>
             </table>
           </div>
+
+          <!-- Mobile Inventory Card View -->
+          <div class="block md:hidden mt-4 space-y-4">
+            ${products.map(product => {
+              const firstImg = product.images && product.images.length > 0 ? product.images[0] : "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=80&q=80";
+              return `
+                <div class="bg-[#F9F8F6] border border-[#E5E3DF] p-4 rounded-2xl flex items-start gap-4 shadow-xs">
+                  <!-- Thumbnail -->
+                  <div class="w-16 h-20 rounded-xl overflow-hidden border border-[#E5E3DF] bg-stone-50 flex-shrink-0">
+                    <img src="${firstImg}" class="w-full h-full object-cover" />
+                  </div>
+
+                  <!-- Details & Actions -->
+                  <div class="flex-grow space-y-2.5">
+                    <div>
+                      <p class="font-medium text-[#1A1A1A] text-xs line-clamp-1">${product.title}</p>
+                      <div class="flex items-center justify-between mt-1 text-[10px] text-[#5A5A5A]">
+                        <span class="uppercase tracking-widest font-semibold">${product.category}</span>
+                        <span class="font-mono text-[8px]">${product.id}</span>
+                      </div>
+                      <div class="flex items-baseline gap-2 mt-1">
+                        <span class="font-semibold text-xs text-[#1A1A1A]">₹${product.price}</span>
+                        <span class="text-[9px] text-[#8A8A8A] line-through font-normal">₹${product.originalPrice}</span>
+                      </div>
+                    </div>
+
+                    <!-- Touch Targets Stock Toggle & Delete Button -->
+                    <div class="flex gap-2">
+                      <button 
+                        data-toggle-id="${product.id}"
+                        class="stock-toggle-badge flex-1 min-h-[48px] rounded-xl text-[9px] uppercase tracking-widest font-bold border transition-all flex items-center justify-center ${
+                          product.inStock 
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' 
+                            : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                        }"
+                      >
+                        ${product.inStock ? "In Stock" : "Out of Stock"}
+                      </button>
+                      <button 
+                        data-delete-id="${product.id}"
+                        class="delete-product-btn px-4 min-h-[48px] text-rose-600 hover:text-rose-900 border border-rose-200 hover:border-rose-600 rounded-xl bg-rose-50/50 hover:bg-rose-50 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none flex items-center justify-center"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
         </div>
 
       </div>
     `;
+
+    // 1. Render size selection pills
+    function renderSizeChips() {
+      const standardContainer = document.getElementById('standard-sizes-chips');
+      const coupleContainer = document.getElementById('couple-sizes-chips');
+      if (!standardContainer || !coupleContainer) return;
+
+      // Standard chips
+      standardContainer.innerHTML = defaultApparelSizes.map(size => {
+        const isSelected = selectedSizes.has(size);
+        return `
+          <button type="button" data-size="${size}" class="size-chip px-3.5 py-2.5 rounded-full text-[10px] font-semibold tracking-wider uppercase border transition-all duration-200 flex items-center gap-1 focus:outline-none min-h-[38px] ${
+            isSelected
+              ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]'
+              : 'bg-white text-[#1A1A1A] border-[#E5E3DF] hover:border-[#1A1A1A]'
+          }">
+            ${isSelected ? '✓ ' : ''}${size}
+          </button>
+        `;
+      }).join('');
+
+      // Couple and Custom chips
+      const allCoupleAndCustom = [...defaultCoupleSizes, ...customSizes];
+      coupleContainer.innerHTML = allCoupleAndCustom.map(size => {
+        const isSelected = selectedSizes.has(size);
+        return `
+          <button type="button" data-size="${size}" class="size-chip px-3.5 py-2.5 rounded-full text-[10px] font-semibold tracking-wider uppercase border transition-all duration-200 flex items-center gap-1 focus:outline-none min-h-[38px] ${
+            isSelected
+              ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]'
+              : 'bg-white text-[#1A1A1A] border-[#E5E3DF] hover:border-[#1A1A1A]'
+          }">
+            ${isSelected ? '✓ ' : ''}${size}
+          </button>
+        `;
+      }).join('');
+
+      // Hook up listeners
+      const chips = tabContent.querySelectorAll('.size-chip');
+      chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          const sz = chip.getAttribute('data-size');
+          if (selectedSizes.has(sz)) {
+            selectedSizes.delete(sz);
+          } else {
+            selectedSizes.add(sz);
+          }
+          renderSizeChips();
+        });
+      });
+    }
+
+    renderSizeChips();
+
+    // Hook up custom size quick-add
+    const quickAddBtn = document.getElementById('quick-add-size-btn');
+    const inputWrapper = document.getElementById('custom-size-input-wrapper');
+    const customSizeInput = document.getElementById('custom-size-input');
+    const confirmCustomBtn = document.getElementById('confirm-custom-size-btn');
+
+    if (quickAddBtn && inputWrapper && customSizeInput && confirmCustomBtn) {
+      quickAddBtn.addEventListener('click', () => {
+        quickAddBtn.classList.add('hidden');
+        inputWrapper.classList.remove('hidden');
+        customSizeInput.focus();
+      });
+
+      confirmCustomBtn.addEventListener('click', () => {
+        const val = customSizeInput.value.trim();
+        if (val && !defaultApparelSizes.includes(val) && !defaultCoupleSizes.includes(val) && !customSizes.includes(val)) {
+          customSizes.push(val);
+          selectedSizes.add(val);
+        }
+        customSizeInput.value = '';
+        inputWrapper.classList.add('hidden');
+        quickAddBtn.classList.remove('hidden');
+        renderSizeChips();
+      });
+
+      customSizeInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          confirmCustomBtn.click();
+        }
+      });
+    }
+
+    // 2. Direct File Upload & Drag-and-Drop: Main Image Setup
+    const mainImgModeUpload = document.getElementById('main-img-mode-upload');
+    const mainImgModeUrl = document.getElementById('main-img-mode-url');
+    const mainUploadZone = document.getElementById('main-image-upload-zone');
+    const mainUrlZone = document.getElementById('main-image-url-zone');
+    const mainDropzone = document.getElementById('main-image-dropzone');
+    const mainFileInput = document.getElementById('main-image-file-input');
+    const mainPreviewContainer = document.getElementById('main-image-preview-container');
+
+    function renderMainPreview() {
+      if (uploadedMainImage) {
+        mainPreviewContainer.innerHTML = `
+          <div class="relative w-24 h-32 rounded-xl overflow-hidden border border-[#C5A880] mt-3">
+            <img src="${uploadedMainImage}" class="w-full h-full object-cover" />
+            <button type="button" id="remove-main-img-btn" class="absolute top-1 right-1 w-5 h-5 bg-black/70 hover:bg-black text-white text-[10px] rounded-full flex items-center justify-center font-bold focus:outline-none">✕</button>
+          </div>
+        `;
+        mainPreviewContainer.classList.remove('hidden');
+        
+        const removeBtn = document.getElementById('remove-main-img-btn');
+        if (removeBtn) {
+          removeBtn.addEventListener('click', () => {
+            uploadedMainImage = "";
+            renderMainPreview();
+          });
+        }
+      } else {
+        mainPreviewContainer.innerHTML = "";
+        mainPreviewContainer.classList.add('hidden');
+      }
+    }
+
+    if (mainImgModeUpload && mainImgModeUrl) {
+      mainImgModeUpload.addEventListener('click', () => {
+        mainImageMode = "upload";
+        mainImgModeUpload.className = "flex-1 px-3 py-2 text-[9px] font-semibold uppercase tracking-widest border transition-all rounded-xl focus:outline-none min-h-[40px] bg-[#1A1A1A] text-white border-[#1A1A1A]";
+        mainImgModeUrl.className = "flex-1 px-3 py-2 text-[9px] font-semibold uppercase tracking-widest border transition-all rounded-xl focus:outline-none min-h-[40px] bg-white text-[#5A5A5A] border-[#E5E3DF]";
+        mainUploadZone.classList.remove('hidden');
+        mainUrlZone.classList.add('hidden');
+      });
+      mainImgModeUrl.addEventListener('click', () => {
+        mainImageMode = "url";
+        mainImgModeUrl.className = "flex-1 px-3 py-2 text-[9px] font-semibold uppercase tracking-widest border transition-all rounded-xl focus:outline-none min-h-[40px] bg-[#1A1A1A] text-white border-[#1A1A1A]";
+        mainImgModeUpload.className = "flex-1 px-3 py-2 text-[9px] font-semibold uppercase tracking-widest border transition-all rounded-xl focus:outline-none min-h-[40px] bg-white text-[#5A5A5A] border-[#E5E3DF]";
+        mainUrlZone.classList.remove('hidden');
+        mainUploadZone.classList.add('hidden');
+      });
+    }
+
+    if (mainDropzone && mainFileInput) {
+      ['dragenter', 'dragover'].forEach(eventName => {
+        mainDropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          mainDropzone.classList.add('bg-[#C5A880]/10', 'border-[#C5A880]');
+        }, false);
+      });
+      ['dragleave', 'drop'].forEach(eventName => {
+        mainDropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          mainDropzone.classList.remove('bg-[#C5A880]/10', 'border-[#C5A880]');
+        }, false);
+      });
+
+      mainDropzone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files && files.length > 0) {
+          compressAndConvertToBase64(files[0], (base64) => {
+            uploadedMainImage = base64;
+            renderMainPreview();
+          });
+        }
+      });
+
+      mainFileInput.addEventListener('change', (e) => {
+        const files = e.target.files;
+        if (files && files.length > 0) {
+          compressAndConvertToBase64(files[0], (base64) => {
+            uploadedMainImage = base64;
+            renderMainPreview();
+          });
+        }
+      });
+    }
+
+    renderMainPreview();
+
+    // 3. Direct File Upload & Drag-and-Drop: Gallery Setup
+    const galleryImgModeUpload = document.getElementById('gallery-img-mode-upload');
+    const galleryImgModeUrl = document.getElementById('gallery-img-mode-url');
+    const galleryUploadZone = document.getElementById('gallery-image-upload-zone');
+    const galleryUrlZone = document.getElementById('gallery-image-url-zone');
+    const galleryDropzone = document.getElementById('gallery-image-dropzone');
+    const galleryFileInput = document.getElementById('gallery-image-file-input');
+    const galleryPreviewContainer = document.getElementById('gallery-images-preview-container');
+
+    function renderGalleryPreviews() {
+      if (uploadedGalleryImages.length > 0) {
+        galleryPreviewContainer.innerHTML = uploadedGalleryImages.map((img, index) => `
+          <div class="relative w-full aspect-[3/4] rounded-xl overflow-hidden border border-[#E5E3DF] mt-2">
+            <img src="${img}" class="w-full h-full object-cover" />
+            <button type="button" data-index="${index}" class="remove-gallery-img-btn absolute top-1 right-1 w-5 h-5 bg-black/70 hover:bg-black text-white text-[10px] rounded-full flex items-center justify-center font-bold focus:outline-none">✕</button>
+          </div>
+        `).join('');
+        galleryPreviewContainer.classList.remove('hidden');
+
+        galleryPreviewContainer.querySelectorAll('.remove-gallery-img-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const idx = parseInt(btn.getAttribute('data-index'));
+            uploadedGalleryImages.splice(idx, 1);
+            renderGalleryPreviews();
+          });
+        });
+      } else {
+        galleryPreviewContainer.innerHTML = "";
+        galleryPreviewContainer.classList.add('hidden');
+      }
+    }
+
+    if (galleryImgModeUpload && galleryImgModeUrl) {
+      galleryImgModeUpload.addEventListener('click', () => {
+        galleryImageMode = "upload";
+        galleryImgModeUpload.className = "flex-1 px-3 py-2 text-[9px] font-semibold uppercase tracking-widest border transition-all rounded-xl focus:outline-none min-h-[40px] bg-[#1A1A1A] text-white border-[#1A1A1A]";
+        galleryImgModeUrl.className = "flex-1 px-3 py-2 text-[9px] font-semibold uppercase tracking-widest border transition-all rounded-xl focus:outline-none min-h-[40px] bg-white text-[#5A5A5A] border-[#E5E3DF]";
+        galleryUploadZone.classList.remove('hidden');
+        galleryUrlZone.classList.add('hidden');
+      });
+      galleryImgModeUrl.addEventListener('click', () => {
+        galleryImageMode = "url";
+        galleryImgModeUrl.className = "flex-1 px-3 py-2 text-[9px] font-semibold uppercase tracking-widest border transition-all rounded-xl focus:outline-none min-h-[40px] bg-[#1A1A1A] text-white border-[#1A1A1A]";
+        galleryImgModeUpload.className = "flex-1 px-3 py-2 text-[9px] font-semibold uppercase tracking-widest border transition-all rounded-xl focus:outline-none min-h-[40px] bg-white text-[#5A5A5A] border-[#E5E3DF]";
+        galleryUrlZone.classList.remove('hidden');
+        galleryUploadZone.classList.add('hidden');
+      });
+    }
+
+    if (galleryDropzone && galleryFileInput) {
+      ['dragenter', 'dragover'].forEach(eventName => {
+        galleryDropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          galleryDropzone.classList.add('bg-[#C5A880]/10', 'border-[#C5A880]');
+        }, false);
+      });
+      ['dragleave', 'drop'].forEach(eventName => {
+        galleryDropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          galleryDropzone.classList.remove('bg-[#C5A880]/10', 'border-[#C5A880]');
+        }, false);
+      });
+
+      galleryDropzone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files && files.length > 0) {
+          let processed = 0;
+          for (let i = 0; i < files.length; i++) {
+            compressAndConvertToBase64(files[i], (base64) => {
+              uploadedGalleryImages.push(base64);
+              processed++;
+              if (processed === files.length) {
+                renderGalleryPreviews();
+              }
+            });
+          }
+        }
+      });
+
+      galleryFileInput.addEventListener('change', (e) => {
+        const files = e.target.files;
+        if (files && files.length > 0) {
+          let processed = 0;
+          for (let i = 0; i < files.length; i++) {
+            compressAndConvertToBase64(files[i], (base64) => {
+              uploadedGalleryImages.push(base64);
+              processed++;
+              if (processed === files.length) {
+                renderGalleryPreviews();
+              }
+            });
+          }
+        }
+      });
+    }
+
+    renderGalleryPreviews();
 
     // Hook Up Add Product Form Listener
     const form = document.getElementById('add-product-form');
@@ -581,18 +1038,41 @@ export function initAdmin(containerId) {
         const badge = document.getElementById('prod-badge').value.trim();
         const price = parseInt(document.getElementById('prod-price').value);
         const originalPrice = parseInt(document.getElementById('prod-mrp').value);
-        const sizesInput = document.getElementById('prod-sizes').value.trim();
-        const mainImage = document.getElementById('prod-image-main').value.trim();
-        const galleryInput = document.getElementById('prod-image-gallery').value.trim();
         const description = document.getElementById('prod-desc').value.trim();
         const fabricDetails = document.getElementById('prod-fabric').value.trim() || "Premium luxury fabric. Delicate handling.";
 
-        const sizes = sizesInput.split(',').map(s => s.trim()).filter(s => s !== "");
+        const sizes = Array.from(selectedSizes);
+        if (sizes.length === 0) {
+          alert("⚠️ Please select at least one size tag!");
+          return;
+        }
+
+        // Determine main image URL/Base64
+        let mainImage = "";
+        if (mainImageMode === "upload") {
+          if (!uploadedMainImage) {
+            alert("⚠️ Please upload a main product image!");
+            return;
+          }
+          mainImage = uploadedMainImage;
+        } else {
+          mainImage = document.getElementById('prod-image-main').value.trim();
+          if (!mainImage) {
+            alert("⚠️ Please enter a main product image URL!");
+            return;
+          }
+        }
+
         const images = [mainImage];
-        if (galleryInput) {
-          galleryInput.split(',').map(img => img.trim()).filter(img => img !== "").forEach(img => {
-            images.push(img);
-          });
+        if (galleryImageMode === "upload") {
+          uploadedGalleryImages.forEach(img => images.push(img));
+        } else {
+          const galleryInput = document.getElementById('prod-image-gallery').value.trim();
+          if (galleryInput) {
+            galleryInput.split(',').map(img => img.trim()).filter(img => img !== "").forEach(img => {
+              images.push(img);
+            });
+          }
         }
 
         const id = "prod-" + Date.now();
@@ -617,11 +1097,21 @@ export function initAdmin(containerId) {
         saveProducts(updatedProducts);
         
         alert(`⚡ Product "${title}" has been successfully added!`);
+
+        // Reset state values
+        selectedSizes.clear();
+        selectedSizes.add("M");
+        selectedSizes.add("L");
+        selectedSizes.add("XL");
+        customSizes.length = 0;
+        uploadedMainImage = "";
+        uploadedGalleryImages.length = 0;
+
         renderProductsTab();
       });
     }
 
-    // Hook Up Stock Toggle Buttons
+    // Hook Up Stock Toggle Buttons (working on both mobile and desktop views)
     const stockBadges = tabContent.querySelectorAll('.stock-toggle-badge');
     stockBadges.forEach(badge => {
       badge.addEventListener('click', () => {
@@ -637,7 +1127,7 @@ export function initAdmin(containerId) {
       });
     });
 
-    // Hook Up Delete Product Buttons
+    // Hook Up Delete Product Buttons (working on both mobile and desktop views)
     const deleteBtns = tabContent.querySelectorAll('.delete-product-btn');
     deleteBtns.forEach(btn => {
       btn.addEventListener('click', () => {
@@ -685,9 +1175,9 @@ export function initAdmin(containerId) {
         
         <!-- Top Row: Configurable Supplier Cost & Export Tools -->
         <div class="bg-white border border-[#E5E3DF] p-5 rounded-2xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-sm">
-          <div class="flex items-center gap-3">
+          <div class="flex flex-wrap items-center gap-3">
             <label for="supplier-cost-input" class="text-xs uppercase tracking-wider text-[#1A1A1A] font-bold">Estimated Supplier Cost</label>
-            <div class="flex items-center bg-[#F9F8F6] border border-[#E5E3DF] rounded-xl overflow-hidden px-3.5 py-2">
+            <div class="flex items-center bg-[#F9F8F6] border border-[#E5E3DF] rounded-xl overflow-hidden px-3.5 py-3 min-h-[48px]">
               <input 
                 type="number" 
                 id="supplier-cost-input" 
@@ -703,7 +1193,7 @@ export function initAdmin(containerId) {
           
           <button 
             id="csv-export-btn" 
-            class="px-5 py-3 bg-[#1A1A1A] hover:bg-[#C5A880] hover:text-[#1A1A1A] text-white text-xs uppercase tracking-widest font-semibold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 focus:outline-none shadow-xs"
+            class="px-5 py-3 min-h-[48px] bg-[#1A1A1A] hover:bg-[#C5A880] hover:text-[#1A1A1A] text-white text-xs uppercase tracking-widest font-semibold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 focus:outline-none shadow-xs"
           >
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -732,8 +1222,8 @@ export function initAdmin(containerId) {
           </div>
         </div>
 
-        <!-- Bottom Row: Orders Ledger Table -->
-        <div class="bg-white border border-[#E5E3DF] p-6 rounded-2xl shadow-sm overflow-hidden">
+        <!-- Bottom Row: Orders Ledger (Desktop View) -->
+        <div class="hidden md:block bg-white border border-[#E5E3DF] p-6 rounded-2xl shadow-sm overflow-hidden">
           <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-[#E5E3DF]">
               <thead>
@@ -784,7 +1274,7 @@ export function initAdmin(containerId) {
                       <td class="py-4">
                         <select 
                           data-order-status-id="${order.id}" 
-                          class="order-status-selector text-[9px] uppercase tracking-widest font-bold px-2 py-1.5 rounded-md border focus:outline-none ${
+                          class="order-status-selector min-h-[48px] text-[9px] uppercase tracking-widest font-bold px-2.5 py-2 rounded-md border focus:outline-none cursor-pointer ${
                             order.status === "Delivered" 
                               ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
                               : order.status === "Cancelled"
@@ -804,19 +1294,19 @@ export function initAdmin(containerId) {
                       <td class="py-4 text-right whitespace-nowrap space-x-1">
                         <button 
                           data-chat-id="${order.id}"
-                          class="chat-customer-btn border border-[#E5E3DF] text-[#1A1A1A] hover:bg-stone-50 rounded-lg px-2 py-1.5 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none"
+                          class="chat-customer-btn min-h-[48px] border border-[#E5E3DF] text-[#1A1A1A] hover:bg-stone-50 rounded-lg px-2.5 py-2 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none"
                         >
                           Chat
                         </button>
                         <button 
                           data-print-id="${order.id}"
-                          class="print-slip-btn border border-[#E5E3DF] text-[#1A1A1A] hover:bg-stone-50 rounded-lg px-2 py-1.5 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none"
+                          class="print-slip-btn min-h-[48px] border border-[#E5E3DF] text-[#1A1A1A] hover:bg-stone-50 rounded-lg px-2.5 py-2 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none"
                         >
                           Slip
                         </button>
                         <button 
                           data-delete-order-id="${order.id}"
-                          class="delete-order-btn text-rose-600 hover:text-rose-900 border border-rose-200 hover:border-rose-600 rounded-lg px-2 py-1.5 bg-rose-50/50 hover:bg-rose-50 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none"
+                          class="delete-order-btn min-h-[48px] text-rose-600 hover:text-rose-900 border border-rose-200 hover:border-rose-600 rounded-lg px-2.5 py-2 bg-rose-50/50 hover:bg-rose-50 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none"
                         >
                           Delete
                         </button>
@@ -827,6 +1317,116 @@ export function initAdmin(containerId) {
               </tbody>
             </table>
           </div>
+        </div>
+
+        <!-- Bottom Row: Orders Ledger (Mobile Card View) -->
+        <div class="block md:hidden space-y-4">
+          ${orders.map(order => {
+            const isExpanded = expandedOrders.has(order.id);
+            return `
+              <div class="bg-white border border-[#E5E3DF] rounded-2xl shadow-sm p-4 space-y-3" data-order-card-id="${order.id}">
+                <!-- Card Header (Always Visible) -->
+                <div class="flex items-start justify-between">
+                  <div>
+                    <p class="font-mono font-bold text-[#C5A880] text-xs">${order.id}</p>
+                    <p class="text-[10px] text-[#8A8A8A] mt-0.5">${order.date}</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="font-bold text-[#1A1A1A] text-sm">₹${order.total.toLocaleString('en-IN')}</p>
+                    <p class="text-[9px] uppercase tracking-wider text-[#8A8A8A] font-semibold">${order.paymentMethod.replace("Transfer", "").replace("Prepaid", "Prepaid")}</p>
+                  </div>
+                </div>
+
+                <!-- Toggle Collapse Header -->
+                <div class="flex justify-between items-center border-t border-[#E5E3DF]/50 pt-2.5">
+                  <p class="font-semibold text-xs text-[#1A1A1A]">${order.customerName}</p>
+                  <button 
+                    data-toggle-expand-id="${order.id}" 
+                    class="text-[10px] uppercase tracking-widest font-bold text-[#C5A880] focus:outline-none flex items-center gap-1 min-h-[48px]"
+                  >
+                    <span>${isExpanded ? "Hide Details" : "Show Details"}</span>
+                    <svg class="w-3.5 h-3.5 transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Card Body (Collapsible Details) -->
+                <div class="${isExpanded ? 'block' : 'hidden'} border-t border-[#E5E3DF]/50 pt-3 space-y-3">
+                  <!-- Customer Details -->
+                  <div class="text-xs text-[#5A5A5A] space-y-1">
+                    <p class="font-semibold text-[#1A1A1A]">Shipping Address:</p>
+                    <p class="font-light leading-relaxed">${order.address}, ${order.city}, ${order.state} - ${order.pincode}</p>
+                    <p class="font-light mt-1">Phone: +91 ${order.phone}</p>
+                  </div>
+
+                  <!-- Ordered Items -->
+                  <div class="bg-[#F9F8F6] p-3 rounded-xl border border-[#E5E3DF] space-y-2">
+                    <p class="text-[9px] uppercase tracking-widest text-[#8A8A8A] font-bold">Ordered Items</p>
+                    <div class="divide-y divide-[#E5E3DF]/60 text-xs">
+                      ${order.items.map(item => `
+                        <div class="py-1.5 first:pt-0 last:pb-0 leading-tight">
+                          <p class="font-medium text-[#1A1A1A]">${item.title}</p>
+                          <p class="text-[9px] text-[#8A8A8A] mt-0.5 uppercase tracking-widest font-semibold">Size: ${item.size} &bull; Qty: ${item.quantity}</p>
+                        </div>
+                      `).join('')}
+                    </div>
+                  </div>
+
+                  <!-- Direct WhatsApp Contact Call-To-Action (Primary Mobile Action) -->
+                  <button 
+                    data-chat-id="${order.id}"
+                    class="chat-customer-btn w-full min-h-[48px] bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs uppercase tracking-widest font-bold flex items-center justify-center gap-2 focus:outline-none transition-all shadow-xs"
+                  >
+                    <svg class="w-4.5 h-4.5 fill-current" viewBox="0 0 24 24">
+                      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.792 1.451 5.405 0 9.803-4.364 9.806-9.728.001-2.597-1.006-5.04-2.836-6.87C16.59 2.188 14.15 1.18 11.56 1.18 6.155 1.18 1.758 5.544 1.755 10.91c-.001 1.744.463 3.447 1.344 4.953l-.973 3.553 3.633-.953z" />
+                    </svg>
+                    <span>Chat on WhatsApp</span>
+                  </button>
+
+                  <!-- 1-Tap Status Selector & Actions -->
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <label class="block text-[8px] uppercase tracking-wider text-[#8A8A8A] font-bold mb-1">Update Status</label>
+                      <select 
+                        data-order-status-id="${order.id}" 
+                        class="order-status-selector w-full min-h-[48px] text-[10px] uppercase tracking-widest font-bold px-3 py-2 rounded-xl border focus:outline-none cursor-pointer ${
+                          order.status === "Delivered" 
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                            : order.status === "Cancelled"
+                            ? "bg-rose-50 text-rose-700 border-rose-200"
+                            : order.status === "Dispatched"
+                            ? "bg-blue-50 text-blue-700 border-blue-200"
+                            : "bg-amber-50 text-amber-700 border-amber-200"
+                        }"
+                      >
+                        <option value="Pending Dispatch" ${order.status === "Pending Dispatch" ? "selected" : ""}>Pending Dispatch</option>
+                        <option value="Pending Confirmation" ${order.status === "Pending Confirmation" ? "selected" : ""}>Pending Confirmation</option>
+                        <option value="Dispatched" ${order.status === "Dispatched" ? "selected" : ""}>Dispatched</option>
+                        <option value="Delivered" ${order.status === "Delivered" ? "selected" : ""}>Delivered</option>
+                        <option value="Cancelled" ${order.status === "Cancelled" ? "selected" : ""}>Cancelled</option>
+                      </select>
+                    </div>
+
+                    <div class="flex items-end gap-2">
+                      <button 
+                        data-print-id="${order.id}"
+                        class="print-slip-btn flex-1 min-h-[48px] border border-[#E5E3DF] text-[#1A1A1A] hover:bg-stone-50 rounded-xl text-[10px] uppercase tracking-widest font-bold transition-all focus:outline-none flex items-center justify-center"
+                      >
+                        Print Slip
+                      </button>
+                      <button 
+                        data-delete-order-id="${order.id}"
+                        class="delete-order-btn min-h-[48px] text-rose-600 hover:text-rose-900 border border-rose-200 hover:border-rose-600 rounded-xl px-4 bg-rose-50/50 hover:bg-rose-50 text-[10px] uppercase tracking-widest font-bold transition-all focus:outline-none flex items-center justify-center"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
         </div>
 
       </div>
@@ -855,7 +1455,7 @@ export function initAdmin(containerId) {
       csvBtn.addEventListener("click", () => exportOrdersToCSV(orders));
     }
 
-    // Hook Up Status Selectors
+    // Hook Up Status Selectors (working on both mobile and desktop views)
     const statusSelectors = tabContent.querySelectorAll(".order-status-selector");
     statusSelectors.forEach(selector => {
       selector.addEventListener("change", (e) => {
@@ -872,7 +1472,7 @@ export function initAdmin(containerId) {
       });
     });
 
-    // Hook Up Customer Chat Buttons
+    // Hook Up Customer Chat Buttons (working on both mobile and desktop views)
     const chatBtns = tabContent.querySelectorAll(".chat-customer-btn");
     chatBtns.forEach(btn => {
       btn.addEventListener("click", () => {
@@ -882,7 +1482,7 @@ export function initAdmin(containerId) {
       });
     });
 
-    // Hook Up Print Packing Slip Buttons
+    // Hook Up Print Packing Slip Buttons (working on both mobile and desktop views)
     const printBtns = tabContent.querySelectorAll(".print-slip-btn");
     printBtns.forEach(btn => {
       btn.addEventListener("click", () => {
@@ -892,7 +1492,7 @@ export function initAdmin(containerId) {
       });
     });
 
-    // Hook Up Delete Order Buttons
+    // Hook Up Delete Order Buttons (working on both mobile and desktop views)
     const deleteBtns = tabContent.querySelectorAll(".delete-order-btn");
     deleteBtns.forEach(btn => {
       btn.addEventListener("click", () => {
@@ -903,6 +1503,20 @@ export function initAdmin(containerId) {
           saveOrders(updatedOrders);
           renderAdminConsole();
         }
+      });
+    });
+
+    // Hook Up Mobile Expand Collapsible Listener
+    const expandBtns = tabContent.querySelectorAll("[data-toggle-expand-id]");
+    expandBtns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const orderId = btn.getAttribute("data-toggle-expand-id");
+        if (expandedOrders.has(orderId)) {
+          expandedOrders.delete(orderId);
+        } else {
+          expandedOrders.add(orderId);
+        }
+        renderLedgerTab();
       });
     });
   }
