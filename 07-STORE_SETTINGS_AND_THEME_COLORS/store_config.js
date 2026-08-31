@@ -31,7 +31,7 @@ export const storeConfig = {
   // Festive & Promo Banner Settings
   festiveOffers: {
     active: true,
-    bannerText: "The Festive Edit: Complimentary Personal Styling & Worldwide Express Delivery on orders above ₹15,000",
+    bannerText: "✨ Grand Festive Collection 2026 Live Now | Fast Pan-India Shipping",
     promoCode: "PALETTEGOLD"
   },
   
