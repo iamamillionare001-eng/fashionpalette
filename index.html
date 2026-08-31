@@ -28,6 +28,58 @@
   <!-- Master Stylesheet (Variables & Custom Utilities) -->
   <link rel="stylesheet" href="./07-STORE_SETTINGS_AND_THEME_COLORS/theme_colors.css">
 
+  <!-- Firebase App & Cloud Firestore Production SDKs -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { 
+      getFirestore, 
+      collection, 
+      doc, 
+      getDocs, 
+      setDoc, 
+      addDoc, 
+      updateDoc, 
+      deleteDoc, 
+      onSnapshot, 
+      query, 
+      orderBy,
+      serverTimestamp 
+    } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCsPJQJB5YjfrNWSxuBmR_tRcnsZiZxIY8",
+      authDomain: "fashion-palette.firebaseapp.com",
+      projectId: "fashion-palette",
+      storageBucket: "fashion-palette.appspot.com",
+      messagingSenderId: "26828188971",
+      appId: "1:26828188971:web:2931372e24ffbc4b57a96e"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Make Firestore database instance and helper references globally accessible
+    window.fp_firebase_app = app;
+    window.fp_db = db;
+    window.fp_firestore = {
+      collection,
+      doc,
+      getDocs,
+      setDoc,
+      addDoc,
+      updateDoc,
+      deleteDoc,
+      onSnapshot,
+      query,
+      orderBy,
+      serverTimestamp
+    };
+    window.IMGBB_API_KEY = "2c6efaf2e58f9263eda86d678f128017";
+
+    console.log("⚡ Firebase Firestore & ImgBB Cloud Synchronizer Initialized.");
+    window.dispatchEvent(new CustomEvent("fp_firebase_ready", { detail: { db } }));
+  </script>
+
   <!-- Theme engine & settings auto-synchronization script -->
   <script type="module">
     import { storeConfig } from './07-STORE_SETTINGS_AND_THEME_COLORS/store_config.js';

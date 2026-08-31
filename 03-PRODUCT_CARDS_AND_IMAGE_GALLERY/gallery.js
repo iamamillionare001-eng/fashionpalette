@@ -4,6 +4,8 @@
  * for the luxury product catalog.
  */
 
+import { subscribeToProducts } from '../07-STORE_SETTINGS_AND_THEME_COLORS/firebase_sync.js';
+
 // Curated dropshipping apparel catalog for Ganesh Chaturthi and Festive 2026
 const DEFAULT_PRODUCTS = [
   {
@@ -703,7 +705,11 @@ export function initGallery(containerId) {
     render();
   }
 
-  window.addEventListener('hashchange', handleHashNavigation);
+  // Subscribe to real-time Cloud Firestore catalog sync with default seeding
+  subscribeToProducts((cloudProducts) => {
+    products = cloudProducts;
+    render();
+  }, DEFAULT_PRODUCTS);
 
   // Initial Render & Hash Check
   handleHashNavigation();

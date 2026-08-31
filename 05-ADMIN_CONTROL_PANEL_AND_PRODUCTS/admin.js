@@ -7,6 +7,17 @@
 
 import { storeConfig } from '../07-STORE_SETTINGS_AND_THEME_COLORS/store_config.js';
 import { initHero, getHeroConfig } from '../02-HERO_BANNER_AND_FESTIVE_OFFERS/hero.js';
+import { 
+  uploadToImgBB, 
+  subscribeToProducts, 
+  saveProductToCloud, 
+  updateProductStockInCloud, 
+  deleteProductFromCloud, 
+  subscribeToOrders, 
+  saveOrderToCloud, 
+  updateOrderStatusInCloud, 
+  deleteOrderFromCloud 
+} from '../07-STORE_SETTINGS_AND_THEME_COLORS/firebase_sync.js';
 
 // Helper local functions to read/write product catalog
 function getProducts() {
@@ -889,6 +900,35 @@ export function initAdmin(containerId) {
       });
     }
 
+    async function handleMainImageUpload(file) {
+      if (!file) return;
+      mainDropzone.innerHTML = `
+        <div class="space-y-2 pointer-events-none flex flex-col items-center justify-center py-2">
+          <div class="w-6 h-6 border-2 border-[#C5A880] border-t-transparent rounded-full animate-spin"></div>
+          <p class="text-[10px] font-bold text-[#C5A880] uppercase tracking-wider">Uploading to ImgBB Cloud...</p>
+          <p class="text-[8px] text-[#8A8A8A]">Please wait</p>
+        </div>
+      `;
+      try {
+        const url = await uploadToImgBB(file);
+        uploadedMainImage = url;
+        renderMainPreview();
+      } catch (err) {
+        console.error("Main Image Upload Error:", err);
+        alert("⚠️ ImgBB Upload Failed: " + (err.message || "Network Error") + "\nYou can also switch to 'Image URL Link' mode.");
+      } finally {
+        mainDropzone.innerHTML = `
+          <div class="space-y-1.5 pointer-events-none">
+            <svg class="w-7 h-7 text-[#C5A880] mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <p class="text-[9px] font-semibold uppercase tracking-wider text-[#1A1A1A]">Drag & Drop or Click to Upload</p>
+            <p class="text-[8px] text-[#8A8A8A]">JPG, PNG, WebP supported</p>
+          </div>
+        `;
+      }
+    }
+
     if (mainDropzone && mainFileInput) {
       ['dragenter', 'dragover'].forEach(eventName => {
         mainDropzone.addEventListener(eventName, (e) => {
@@ -907,20 +947,14 @@ export function initAdmin(containerId) {
         const dt = e.dataTransfer;
         const files = dt.files;
         if (files && files.length > 0) {
-          compressAndConvertToBase64(files[0], (base64) => {
-            uploadedMainImage = base64;
-            renderMainPreview();
-          });
+          handleMainImageUpload(files[0]);
         }
       });
 
       mainFileInput.addEventListener('change', (e) => {
         const files = e.target.files;
         if (files && files.length > 0) {
-          compressAndConvertToBase64(files[0], (base64) => {
-            uploadedMainImage = base64;
-            renderMainPreview();
-          });
+          handleMainImageUpload(files[0]);
         }
       });
     }
@@ -959,6 +993,37 @@ export function initAdmin(containerId) {
       }
     }
 
+    async function handleGalleryImagesUpload(files) {
+      if (!files || files.length === 0) return;
+      galleryDropzone.innerHTML = `
+        <div class="space-y-2 pointer-events-none flex flex-col items-center justify-center py-2">
+          <div class="w-6 h-6 border-2 border-[#C5A880] border-t-transparent rounded-full animate-spin"></div>
+          <p class="text-[10px] font-bold text-[#C5A880] uppercase tracking-wider">Uploading ${files.length} Image(s) to ImgBB...</p>
+          <p class="text-[8px] text-[#8A8A8A]">Please wait</p>
+        </div>
+      `;
+      try {
+        for (let i = 0; i < files.length; i++) {
+          const url = await uploadToImgBB(files[i]);
+          uploadedGalleryImages.push(url);
+          renderGalleryPreviews();
+        }
+      } catch (err) {
+        console.error("Gallery Upload Error:", err);
+        alert("⚠️ ImgBB Upload Failed: " + (err.message || "Network Error") + "\nYou can also switch to 'Image URL Link' mode.");
+      } finally {
+        galleryDropzone.innerHTML = `
+          <div class="space-y-1.5 pointer-events-none">
+            <svg class="w-7 h-7 text-[#C5A880] mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p class="text-[9px] font-semibold uppercase tracking-wider text-[#1A1A1A]">Drag & Drop or Click to Upload Multiple</p>
+            <p class="text-[8px] text-[#8A8A8A]">Camera roll / multiple files supported</p>
+          </div>
+        `;
+      }
+    }
+
     if (galleryImgModeUpload && galleryImgModeUrl) {
       galleryImgModeUpload.addEventListener('click', () => {
         galleryImageMode = "upload";
@@ -994,32 +1059,14 @@ export function initAdmin(containerId) {
         const dt = e.dataTransfer;
         const files = dt.files;
         if (files && files.length > 0) {
-          let processed = 0;
-          for (let i = 0; i < files.length; i++) {
-            compressAndConvertToBase64(files[i], (base64) => {
-              uploadedGalleryImages.push(base64);
-              processed++;
-              if (processed === files.length) {
-                renderGalleryPreviews();
-              }
-            });
-          }
+          handleGalleryImagesUpload(files);
         }
       });
 
       galleryFileInput.addEventListener('change', (e) => {
         const files = e.target.files;
         if (files && files.length > 0) {
-          let processed = 0;
-          for (let i = 0; i < files.length; i++) {
-            compressAndConvertToBase64(files[i], (base64) => {
-              uploadedGalleryImages.push(base64);
-              processed++;
-              if (processed === files.length) {
-                renderGalleryPreviews();
-              }
-            });
-          }
+          handleGalleryImagesUpload(files);
         }
       });
     }
@@ -1029,7 +1076,7 @@ export function initAdmin(containerId) {
     // Hook Up Add Product Form Listener
     const form = document.getElementById('add-product-form');
     if (form) {
-      form.addEventListener('submit', (e) => {
+      form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
         // Retrieve field values
@@ -1093,10 +1140,9 @@ export function initAdmin(containerId) {
           images
         };
 
-        const updatedProducts = [...products, newProduct];
-        saveProducts(updatedProducts);
+        await saveProductToCloud(newProduct);
         
-        alert(`⚡ Product "${title}" has been successfully added!`);
+        alert(`⚡ Product "${title}" has been saved and synchronized with Cloud Firestore!`);
 
         // Reset state values
         selectedSizes.clear();
@@ -1114,28 +1160,24 @@ export function initAdmin(containerId) {
     // Hook Up Stock Toggle Buttons (working on both mobile and desktop views)
     const stockBadges = tabContent.querySelectorAll('.stock-toggle-badge');
     stockBadges.forEach(badge => {
-      badge.addEventListener('click', () => {
+      badge.addEventListener('click', async () => {
         const id = badge.getAttribute('data-toggle-id');
-        const updatedProducts = products.map(p => {
-          if (p.id === id) {
-            return { ...p, inStock: !p.inStock };
-          }
-          return p;
-        });
-        saveProducts(updatedProducts);
-        renderProductsTab();
+        const prod = products.find(p => p.id === id);
+        if (prod) {
+          await updateProductStockInCloud(id, !prod.inStock);
+          renderProductsTab();
+        }
       });
     });
 
     // Hook Up Delete Product Buttons (working on both mobile and desktop views)
     const deleteBtns = tabContent.querySelectorAll('.delete-product-btn');
     deleteBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-delete-id');
         const prod = products.find(p => p.id === id);
         if (prod && confirm(`Are you sure you want to delete "${prod.title}"?`)) {
-          const updatedProducts = products.filter(p => p.id !== id);
-          saveProducts(updatedProducts);
+          await deleteProductFromCloud(id);
           renderProductsTab();
         }
       });
@@ -1458,16 +1500,10 @@ export function initAdmin(containerId) {
     // Hook Up Status Selectors (working on both mobile and desktop views)
     const statusSelectors = tabContent.querySelectorAll(".order-status-selector");
     statusSelectors.forEach(selector => {
-      selector.addEventListener("change", (e) => {
+      selector.addEventListener("change", async (e) => {
         const id = selector.getAttribute("data-order-status-id");
         const newStatus = e.target.value;
-        const updatedOrders = orders.map(o => {
-          if (o.id === id) {
-            return { ...o, status: newStatus };
-          }
-          return o;
-        });
-        saveOrders(updatedOrders);
+        await updateOrderStatusInCloud(id, newStatus);
         renderAdminConsole();
       });
     });
@@ -1495,12 +1531,11 @@ export function initAdmin(containerId) {
     // Hook Up Delete Order Buttons (working on both mobile and desktop views)
     const deleteBtns = tabContent.querySelectorAll(".delete-order-btn");
     deleteBtns.forEach(btn => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", async () => {
         const id = btn.getAttribute("data-delete-order-id");
         const order = orders.find(o => o.id === id);
         if (order && confirm(`Permanently delete order ${order.id}?`)) {
-          const updatedOrders = orders.filter(o => o.id !== id);
-          saveOrders(updatedOrders);
+          await deleteOrderFromCloud(id);
           renderAdminConsole();
         }
       });
@@ -2236,6 +2271,22 @@ export function initAdmin(containerId) {
   }
 
   window.addEventListener('hashchange', checkRoute);
+  
+  // Real-time Cloud Firestore subscriptions
+  subscribeToProducts(() => {
+    if (isAuthenticated() && window.location.hash === '#admin') {
+      if (activeTab === 'products') {
+        renderProductsTab();
+      }
+    }
+  });
+
+  subscribeToOrders(() => {
+    if (isAuthenticated() && window.location.hash === '#admin') {
+      renderAdminConsole();
+    }
+  });
+
   window.addEventListener('fp_orders_updated', () => {
     if (isAuthenticated() && window.location.hash === '#admin') {
       renderAdminConsole();

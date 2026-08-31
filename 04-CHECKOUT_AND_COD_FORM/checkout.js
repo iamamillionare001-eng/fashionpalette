@@ -5,6 +5,7 @@
  */
 
 import { storeConfig } from '../07-STORE_SETTINGS_AND_THEME_COLORS/store_config.js';
+import { saveOrderToCloud } from '../07-STORE_SETTINGS_AND_THEME_COLORS/firebase_sync.js';
 
 export function initCheckout(containerId) {
   const container = document.getElementById(containerId);
@@ -681,10 +682,8 @@ export function initCheckout(containerId) {
       status: "Pending Dispatch"
     };
 
-    // Save order details to active orders list (stored in localStorage under 'fp_orders_data')
-    const activeOrders = JSON.parse(localStorage.getItem("fp_orders_data") || "[]");
-    activeOrders.push(newOrder);
-    localStorage.setItem("fp_orders_data", JSON.stringify(activeOrders));
+    // Save order details directly to Firestore and mirror in localStorage
+    saveOrderToCloud(newOrder);
 
     // Clear cart and dispatch updates
     localStorage.removeItem("fp_cart");
