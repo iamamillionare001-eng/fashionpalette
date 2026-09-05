@@ -47,16 +47,20 @@ export function initHeader(containerId) {
   const firstInitial = storeConfig.logoInitials ? storeConfig.logoInitials[0] : 'F';
   const secondInitial = storeConfig.logoInitials ? storeConfig.logoInitials[1] : 'P';
 
-  // Render Header HTML Structure
-  container.innerHTML = `
-    <header class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 backdrop-blur-md bg-[#F9F8F6]/90 border-b border-[#E5E3DF]" id="main-header">
-      <!-- Top Promo / Festive Banner -->
-      ${storeConfig.festiveOffers.active ? `
-      <div class="bg-[#1A1A1A] text-[#F9F8F6] py-2 px-4 text-center text-[10px] tracking-widest uppercase font-medium relative overflow-hidden select-none">
-        <div class="animate-pulse inline-block mr-2 w-1.5 h-1.5 rounded-full bg-[#C5A880]"></div>
-        <span>${storeConfig.festiveOffers.bannerText}</span>
-      </div>
-      ` : ''}
+    // Retrieve custom announcement text from homepage content override if present
+    const homepageContent = JSON.parse(localStorage.getItem('fp_homepage_content') || '{}');
+    const bannerText = homepageContent.ticker_announcement || storeConfig.festiveOffers.bannerText;
+
+    // Render Header HTML Structure
+    container.innerHTML = `
+      <header class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 backdrop-blur-md bg-[#F9F8F6]/90 border-b border-[#E5E3DF]" id="main-header">
+        <!-- Top Promo / Festive Banner -->
+        ${storeConfig.festiveOffers.active ? `
+        <div class="bg-[#1A1A1A] text-[#F9F8F6] py-2 px-4 text-center text-[10px] tracking-widest uppercase font-medium relative overflow-hidden select-none">
+          <div class="animate-pulse inline-block mr-2 w-1.5 h-1.5 rounded-full bg-[#C5A880]"></div>
+          <span data-fp-editable="ticker_announcement" id="header-top-ticker">${bannerText}</span>
+        </div>
+        ` : ''}
 
       <!-- Main Navigation Bar -->
       <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 md:px-6 h-20 flex md:grid md:grid-cols-12 items-center justify-between md:justify-normal transition-all duration-300" id="nav-container">
@@ -384,4 +388,12 @@ export function initHeader(containerId) {
       }
     });
   }
+
+  // --- Real-time Homepage Content Sync for Header Ticker ---
+  window.addEventListener('fp_homepage_content_updated', (e) => {
+    const tickerEl = document.getElementById('header-top-ticker');
+    if (tickerEl && e.detail && e.detail.ticker_announcement) {
+      tickerEl.innerText = e.detail.ticker_announcement;
+    }
+  });
 }

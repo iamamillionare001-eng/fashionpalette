@@ -321,3 +321,113 @@ export async function deleteOrderFromCloud(orderId) {
     }
   });
 }
+
+/**
+ * Subscribe to Hero Settings in Firestore (store_config/hero_settings)
+ * @param {Function} onUpdate 
+ * @returns {Function} Unsubscribe function
+ */
+export function subscribeToHeroSettings(onUpdate) {
+  let unsubscribe = () => {};
+
+  withFirestore((db, firestore) => {
+    const { doc, onSnapshot } = firestore;
+    const heroDocRef = doc(db, "store_config", "hero_settings");
+
+    unsubscribe = onSnapshot(heroDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        localStorage.setItem("fp_hero_settings", JSON.stringify(data));
+        window.dispatchEvent(new CustomEvent("fp_hero_settings_updated", { detail: data }));
+        if (typeof onUpdate === "function") {
+          onUpdate(data);
+        }
+      }
+    }, (err) => {
+      console.warn("Firestore hero_settings subscription warning:", err);
+    });
+  });
+
+  return () => unsubscribe();
+}
+
+/**
+ * Save Hero Settings to Firestore (store_config/hero_settings)
+ * @param {Object} settings 
+ */
+export async function saveHeroSettingsToCloud(settings) {
+  // 1. Local update
+  localStorage.setItem("fp_hero_settings", JSON.stringify(settings));
+  window.dispatchEvent(new CustomEvent("fp_hero_settings_updated", { detail: settings }));
+
+  // 2. Save to Firestore
+  withFirestore(async (db, firestore) => {
+    try {
+      const { doc, setDoc } = firestore;
+      await setDoc(doc(db, "store_config", "hero_settings"), settings, { merge: true });
+      console.log("☁️ Hero settings synced to Firestore store_config/hero_settings.");
+    } catch (e) {
+      console.error("Failed to sync hero settings to Firestore:", e);
+    }
+  });
+}
+
+/**
+ * Subscribe to Homepage Content text overrides in Firestore (store_config/homepage_content)
+ * @param {Function} onUpdate 
+ * @returns {Function} Unsubscribe function
+ */
+export function subscribeToHomepageContent(onUpdate) {
+  let unsubscribe = () => {};
+
+  withFirestore((db, firestore) => {
+    const { doc, onSnapshot } = firestore;
+    const contentDocRef = doc(db, "store_config", "homepage_content");
+
+    unsubscribe = onSnapshot(contentDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        localStorage.setItem("fp_homepage_content", JSON.stringify(data));
+        window.dispatchEvent(new CustomEvent("fp_homepage_content_updated", { detail: data }));
+        if (typeof onUpdate === "function") {
+          onUpdate(data);
+        }
+      }
+    }, (err) => {
+      console.warn("Firestore homepage_content subscription warning:", err);
+    });
+  });
+
+  return () => unsubscribe();
+}
+
+/**
+ * Save single or full Homepage Content map to Firestore (store_config/homepage_content)
+ * @param {string|Object} keyOrObject 
+ * @param {string} [value] 
+ */
+export async function saveHomepageContentToCloud(keyOrObject, value) {
+  const currentContent = JSON.parse(localStorage.getItem("fp_homepage_content") || "{}");
+  
+  if (typeof keyOrObject === "object") {
+    Object.assign(currentContent, keyOrObject);
+  } else if (typeof keyOrObject === "string") {
+    currentContent[keyOrObject] = value;
+  }
+
+  // 1. Local update
+  localStorage.setItem("fp_homepage_content", JSON.stringify(currentContent));
+  window.dispatchEvent(new CustomEvent("fp_homepage_content_updated", { detail: currentContent }));
+
+  // 2. Save to Firestore
+  withFirestore(async (db, firestore) => {
+    try {
+      const { doc, setDoc } = firestore;
+      await setDoc(doc(db, "store_config", "homepage_content"), currentContent, { merge: true });
+      console.log("☁️ Homepage content synced to Firestore store_config/homepage_content.");
+    } catch (e) {
+      console.error("Failed to sync homepage content to Firestore:", e);
+    }
+  });
+}
+
