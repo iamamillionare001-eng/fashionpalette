@@ -141,6 +141,59 @@ export function initAdmin(containerId) {
     return sessionStorage.getItem('admin_authenticated') === 'true';
   }
 
+  function isLiveEditMode() {
+    return isAuthenticated() && localStorage.getItem('fp_live_edit_mode') === 'true';
+  }
+
+  function updateFloatingHUD() {
+    const existingHUD = document.getElementById('fp-live-edit-hud');
+    const isAuth = isAuthenticated();
+    const isEditMode = localStorage.getItem('fp_live_edit_mode') === 'true';
+    const isStorefront = window.location.hash !== '#admin';
+
+    if (isAuth && isEditMode && isStorefront) {
+      if (!existingHUD) {
+        const hud = document.createElement('div');
+        hud.id = 'fp-live-edit-hud';
+        hud.className = 'fixed top-5 left-1/2 -translate-x-1/2 z-[90] flex items-center gap-3 px-5 py-2.5 bg-[#1A1A1A]/95 text-white backdrop-blur-md rounded-full border border-[#C5A880]/70 shadow-2xl animate-fadeIn text-xs transition-all';
+        hud.innerHTML = `
+          <div class="flex items-center gap-2 font-serif tracking-wider uppercase text-amber-200">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+            <span>🛠️ Visual Edit Mode Active</span>
+          </div>
+          <span class="text-stone-500 select-none">|</span>
+          <button id="hud-exit-edit-btn" class="px-3.5 py-1.5 bg-stone-800 hover:bg-stone-700 text-white rounded-full text-[10px] uppercase tracking-wider font-semibold border border-stone-600 hover:border-[#C5A880] transition-all cursor-pointer focus:outline-none">
+            Exit Edit Mode
+          </button>
+          <button id="hud-admin-panel-btn" class="px-3.5 py-1.5 bg-[#C5A880] hover:bg-[#d4b993] text-[#1A1A1A] rounded-full text-[10px] uppercase tracking-wider font-bold transition-all cursor-pointer focus:outline-none shadow-sm">
+            Admin Panel
+          </button>
+        `;
+        document.body.appendChild(hud);
+
+        const exitBtn = document.getElementById('hud-exit-edit-btn');
+        if (exitBtn) {
+          exitBtn.addEventListener('click', () => {
+            localStorage.setItem('fp_live_edit_mode', 'false');
+            window.dispatchEvent(new CustomEvent('fp_edit_mode_toggled', { detail: { enabled: false } }));
+            updateFloatingHUD();
+          });
+        }
+
+        const adminBtn = document.getElementById('hud-admin-panel-btn');
+        if (adminBtn) {
+          adminBtn.addEventListener('click', () => {
+            window.location.hash = 'admin';
+          });
+        }
+      }
+    } else {
+      if (existingHUD) {
+        existingHUD.remove();
+      }
+    }
+  }
+
   // Render the admin console HTML
   function renderAdminConsole() {
     const orders = getOrders();
@@ -159,15 +212,37 @@ export function initAdmin(containerId) {
           </div>
         </div>
         
-        <button 
-          id="admin-logout-btn" 
-          class="flex items-center space-x-2 border border-[#E5E3DF]/30 hover:border-[#C5A880] px-4 py-2 rounded-full text-[10px] tracking-wider uppercase font-semibold text-[#F9F8F6] hover:bg-[#C5A880] hover:text-[#1A1A1A] transition-all duration-300 focus:outline-none"
-        >
-          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          <span>Exit / Logout to Storefront</span>
-        </button>
+        <div class="flex items-center space-x-3">
+          <!-- Visual Live Edit Mode Switch in Top Bar -->
+          <div class="flex items-center gap-2 bg-[#262626] border border-[#C5A880]/40 px-3 py-1.5 rounded-full">
+            <span class="text-[9px] uppercase tracking-wider font-semibold text-[#E5E3DF] flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full ${isLiveEditMode() ? 'bg-emerald-400 animate-pulse' : 'bg-stone-500'}"></span>
+              <span class="hidden sm:inline">Visual</span> Live Edit Mode
+            </span>
+            <button 
+              id="admin-live-edit-toggle-btn"
+              type="button"
+              class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isLiveEditMode() ? 'bg-emerald-600' : 'bg-stone-700'}"
+              role="switch"
+              aria-checked="${isLiveEditMode()}"
+              title="Toggle Live On-Storefront Visual Edit Mode"
+            >
+              <span class="sr-only">Toggle Visual Edit Mode</span>
+              <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isLiveEditMode() ? 'translate-x-4' : 'translate-x-0'}"></span>
+            </button>
+          </div>
+
+          <button 
+            id="admin-logout-btn" 
+            class="flex items-center space-x-2 border border-[#E5E3DF]/30 hover:border-[#C5A880] px-4 py-2 rounded-full text-[10px] tracking-wider uppercase font-semibold text-[#F9F8F6] hover:bg-[#C5A880] hover:text-[#1A1A1A] transition-all duration-300 focus:outline-none"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span class="hidden sm:inline">Exit / Logout to Storefront</span>
+            <span class="sm:hidden">Exit</span>
+          </button>
+        </div>
       </div>
 
       <!-- Luxury Tab Sub-Navigation Bar (4 Tabs) -->
@@ -240,6 +315,19 @@ export function initAdmin(containerId) {
     const logoutBtn = document.getElementById('admin-logout-btn');
     if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
 
+    // Hook up Live Edit Toggle button in console
+    const liveEditToggleBtn = document.getElementById('admin-live-edit-toggle-btn');
+    if (liveEditToggleBtn) {
+      liveEditToggleBtn.addEventListener('click', () => {
+        const currentlyActive = localStorage.getItem('fp_live_edit_mode') === 'true';
+        const nextState = !currentlyActive;
+        localStorage.setItem('fp_live_edit_mode', nextState.toString());
+        window.dispatchEvent(new CustomEvent('fp_edit_mode_toggled', { detail: { enabled: nextState } }));
+        renderAdminConsole();
+        updateFloatingHUD();
+      });
+    }
+
     // Tab button click listeners
     const tabDashboard = document.getElementById('tab-btn-dashboard');
     const tabProducts = document.getElementById('tab-btn-products');
@@ -295,6 +383,36 @@ export function initAdmin(containerId) {
     tabContent.innerHTML = `
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-fadeIn">
         
+        <!-- Top: Visual Live Edit Mode Banner Card -->
+        <div class="lg:col-span-12 bg-gradient-to-r from-[#1A1A1A] via-stone-900 to-[#1A1A1A] text-[#F9F8F6] p-6 rounded-2xl border border-[#C5A880]/50 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div class="space-y-1.5">
+            <div class="flex items-center gap-2.5">
+              <span class="text-lg">🛠️</span>
+              <h3 class="font-serif text-base tracking-wider uppercase text-amber-200">Visual Live Edit Mode</h3>
+              <span class="px-2.5 py-0.5 rounded-full text-[9px] uppercase tracking-widest font-bold ${isLiveEditMode() ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse' : 'bg-stone-800 text-stone-400 border border-stone-700'}">
+                ${isLiveEditMode() ? 'Active on Storefront' : 'Inactive'}
+              </span>
+            </div>
+            <p class="text-xs text-[#E5E3DF]/80 font-light leading-relaxed max-w-2xl">
+              Enable direct on-storefront visual editing: Quick-edit titles and prices via instant modals, drag-and-drop cards to reorder catalog sequence, toggle stock visibility, and delete items with 1-click cloud sync.
+            </p>
+          </div>
+          <div class="flex items-center gap-3 w-full md:w-auto flex-shrink-0">
+            <button 
+              id="dashboard-toggle-live-edit-btn"
+              class="flex-1 md:flex-none px-5 py-3 ${isLiveEditMode() ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-stone-800 hover:bg-stone-700 text-stone-200'} rounded-xl text-xs uppercase tracking-wider font-semibold border border-[#C5A880]/40 transition-all shadow-sm focus:outline-none min-h-[44px]"
+            >
+              ${isLiveEditMode() ? '✓ Live Edit Active (Turn Off)' : '⚡ Activate Live Edit Mode'}
+            </button>
+            <button
+              id="dashboard-goto-storefront-btn" 
+              class="flex-1 md:flex-none px-5 py-3 bg-[#C5A880] hover:bg-[#b0936b] text-[#1A1A1A] rounded-xl text-xs uppercase tracking-wider font-bold transition-all text-center shadow-sm min-h-[44px]"
+            >
+              View Storefront ➔
+            </button>
+          </div>
+        </div>
+
         <!-- Left: Manage Hero & Seasonal Banners -->
         <div class="lg:col-span-7 bg-white border border-[#E5E3DF] p-6 rounded-2xl space-y-6">
           <div>
@@ -385,6 +503,32 @@ export function initAdmin(containerId) {
 
       </div>
     `;
+
+    // Hook up Dashboard Live Edit Toggle Button
+    const dashToggleBtn = document.getElementById('dashboard-toggle-live-edit-btn');
+    if (dashToggleBtn) {
+      dashToggleBtn.addEventListener('click', () => {
+        const currentlyActive = localStorage.getItem('fp_live_edit_mode') === 'true';
+        const nextState = !currentlyActive;
+        localStorage.setItem('fp_live_edit_mode', nextState.toString());
+        window.dispatchEvent(new CustomEvent('fp_edit_mode_toggled', { detail: { enabled: nextState } }));
+        renderDashboardTab();
+        updateFloatingHUD();
+      });
+    }
+
+    const gotoStorefrontBtn = document.getElementById('dashboard-goto-storefront-btn');
+    if (gotoStorefrontBtn) {
+      gotoStorefrontBtn.addEventListener('click', () => {
+        // Exit to storefront
+        container.classList.add('hidden');
+        const storefront = document.getElementById('storefront-view');
+        if (storefront) storefront.classList.remove('hidden');
+        history.pushState("", document.title, window.location.pathname + window.location.search);
+        updateFloatingHUD();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
 
     // Populate Hero Manager fields from localStorage config
     const heroConfig = getHeroConfig();
@@ -2110,10 +2254,14 @@ export function initAdmin(containerId) {
     if (window.location.hash !== '#admin') {
       window.location.hash = 'admin';
     }
+    updateFloatingHUD();
   }
 
   function handleLogout() {
     sessionStorage.removeItem('admin_authenticated');
+    localStorage.setItem('fp_live_edit_mode', 'false');
+    window.dispatchEvent(new CustomEvent('fp_edit_mode_toggled', { detail: { enabled: false } }));
+    updateFloatingHUD();
     
     // Hide admin view
     container.classList.add('hidden');
@@ -2268,9 +2416,11 @@ export function initAdmin(containerId) {
         modal.parentNode.removeChild(modal);
       }
     }
+    updateFloatingHUD();
   }
 
   window.addEventListener('hashchange', checkRoute);
+  window.addEventListener('fp_edit_mode_toggled', updateFloatingHUD);
   
   // Real-time Cloud Firestore subscriptions
   subscribeToProducts(() => {

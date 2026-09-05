@@ -85,6 +85,13 @@ export function subscribeToProducts(onUpdate, defaultSeedItems = []) {
         products.push({ id: docSnap.id, ...docSnap.data() });
       });
 
+      // Sort products sequentially by sortOrder if present
+      products.sort((a, b) => {
+        const orderA = typeof a.sortOrder === 'number' ? a.sortOrder : 999999;
+        const orderB = typeof b.sortOrder === 'number' ? b.sortOrder : 999999;
+        return orderA - orderB;
+      });
+
       // Mirror to localStorage
       localStorage.setItem("fp_products_data", JSON.stringify(products));
       window.dispatchEvent(new CustomEvent("fp_products_updated"));
@@ -98,6 +105,29 @@ export function subscribeToProducts(onUpdate, defaultSeedItems = []) {
   });
 
   return () => unsubscribe();
+}
+
+/**
+ * Update products sequential sortOrder in Firestore and localStorage
+ * @param {Array} productsWithOrder 
+ */
+export async function updateProductsSortOrderInCloud(productsWithOrder) {
+  // 1. Optimistic local update
+  localStorage.setItem("fp_products_data", JSON.stringify(productsWithOrder));
+  window.dispatchEvent(new CustomEvent("fp_products_updated"));
+
+  // 2. Batch update sortOrder in Firestore
+  withFirestore(async (db, firestore) => {
+    try {
+      const { doc, setDoc } = firestore;
+      for (const p of productsWithOrder) {
+        await setDoc(doc(db, "products", p.id), { sortOrder: p.sortOrder }, { merge: true });
+      }
+      console.log("☁️ Products sortOrder successfully synced to Firestore.");
+    } catch (e) {
+      console.error("Failed to sync sort order to Firestore:", e);
+    }
+  });
 }
 
 /**
