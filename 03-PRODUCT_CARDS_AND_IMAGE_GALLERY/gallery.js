@@ -19,6 +19,7 @@ const DEFAULT_PRODUCTS = [
     id: "prod-1",
     sortOrder: 0,
     featured: true,
+    cod_available: true,
     title: "Royal Chanderi Silk Zari Saree",
     category: "Women",
     price: 2499,
@@ -59,6 +60,7 @@ const DEFAULT_PRODUCTS = [
     id: "prod-2",
     sortOrder: 1,
     featured: true,
+    cod_available: true,
     title: "Embroidered Silk Kurta & Churidar Set",
     category: "Men",
     price: 1899,
@@ -89,6 +91,7 @@ const DEFAULT_PRODUCTS = [
     id: "prod-3",
     sortOrder: 2,
     featured: true,
+    cod_available: false,
     title: "Twinned Royal Maroon Silk Couple Festive Set",
     category: "Couple",
     price: 4299,
@@ -119,6 +122,7 @@ const DEFAULT_PRODUCTS = [
     id: "prod-4",
     sortOrder: 3,
     featured: false,
+    cod_available: true,
     title: "Boys Handloom Kurta Dhoti Set",
     category: "Kids",
     price: 999,
@@ -149,6 +153,7 @@ const DEFAULT_PRODUCTS = [
     id: "prod-5",
     sortOrder: 4,
     featured: false,
+    cod_available: false,
     title: "Pure Hand-spun Organic Cotton Kurta",
     category: "Elders",
     price: 1299,
@@ -353,18 +358,18 @@ export function initGallery(containerId) {
                         class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover/img:scale-105"
                       />
                       
-                      <!-- Top Left Badges (Offset if in Edit Mode) -->
-                      <div class="absolute ${editMode ? 'top-12' : 'top-2.5'} left-2.5 flex flex-col gap-1.5 z-10 pointer-events-none transition-all">
-                        <span class="bg-[#1A1A1A]/90 backdrop-blur-xs text-white text-[8px] font-bold px-2.5 py-1 rounded-full uppercase tracking-widest">
+                      <!-- Non-Obstructive Bottom-Left Micro-Pill Badges (Keeping model faces completely clear) -->
+                      <div class="absolute bottom-2.5 left-2.5 flex flex-wrap gap-1 z-10 pointer-events-none max-w-[85%] transition-all">
+                        <span class="bg-black/50 backdrop-blur-sm text-white text-[10px] tracking-widest px-2.5 py-1 rounded-full uppercase font-medium shadow-sm">
                           ${product.category}
                         </span>
                         ${isFeatured ? `
-                          <span class="bg-[#C5A880] text-[#1A1A1A] text-[8px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-1 shadow-sm">
+                          <span class="bg-black/50 backdrop-blur-sm text-amber-300 border border-amber-400/40 text-[10px] tracking-widest px-2.5 py-1 rounded-full uppercase font-medium shadow-sm flex items-center gap-1">
                             ⭐ Featured
                           </span>
                         ` : ''}
                         ${product.badge && product.badge !== 'Featured' ? `
-                          <span class="bg-[#1A1A1A]/80 text-[#C5A880] border border-[#C5A880]/40 text-[8px] font-bold px-2.5 py-1 rounded-full uppercase tracking-widest">
+                          <span class="bg-black/50 backdrop-blur-sm text-white border border-white/20 text-[10px] tracking-widest px-2.5 py-1 rounded-full uppercase font-medium shadow-sm">
                             ${product.badge}
                           </span>
                         ` : ''}
@@ -663,6 +668,7 @@ export function initGallery(containerId) {
 
     if (existingIndex > -1) {
       cart[existingIndex].quantity += quantity;
+      cart[existingIndex].cod_available = product.cod_available === true;
     } else {
       cart.push({
         productId: product.id,
@@ -670,7 +676,8 @@ export function initGallery(containerId) {
         price: product.price,
         size: size,
         quantity: quantity,
-        image: mainImg
+        image: mainImg,
+        cod_available: product.cod_available === true
       });
     }
 
@@ -786,6 +793,7 @@ export function showQuickEditModal(product, onSaveCallback) {
   let mainImageMode = "keep"; // "keep" | "upload" | "url"
   let uploadedModalMainImage = "";
   let isFeaturedChoice = product.featured === true;
+  let isCodAvailableChoice = product.cod_available === true;
 
   modal.innerHTML = `
     <div class="bg-white rounded-3xl border border-[#E5E3DF] max-w-2xl w-full max-h-[92vh] overflow-y-auto shadow-2xl relative p-6 sm:p-8 transform scale-95 opacity-0 transition-all duration-300 space-y-6" id="qe-modal-card">
@@ -844,6 +852,19 @@ export function showQuickEditModal(product, onSaveCallback) {
               <span>${isFeaturedChoice ? '⭐ Flagged Featured' : '☆ Not Featured'}</span>
             </button>
           </div>
+        </div>
+
+        <!-- COD Availability Toggle Option -->
+        <div class="p-3.5 bg-[#F9F8F6] border border-[#E5E3DF] rounded-xl flex items-center justify-between">
+          <div>
+            <label class="block text-[10px] uppercase tracking-wider text-[#1A1A1A] font-bold">Cash on Delivery (COD)</label>
+            <p class="text-[9px] text-[#8A8A8A]">Enable doorstep cash payment for this specific product</p>
+          </div>
+          <button type="button" id="qe-cod-toggle-btn" class="px-3.5 py-2 rounded-xl border text-[10px] font-bold uppercase tracking-wider transition-all ${
+            isCodAvailableChoice ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-white text-stone-500 border-stone-300'
+          }">
+            ${isCodAvailableChoice ? '✓ COD Enabled' : '✕ Prepaid Only'}
+          </button>
         </div>
 
         <!-- Pricing Tiers -->
@@ -1015,6 +1036,18 @@ export function showQuickEditModal(product, onSaveCallback) {
         isFeaturedChoice ? 'bg-amber-50 text-amber-900 border-amber-300' : 'bg-[#F9F8F6] text-[#5A5A5A] border-[#E5E3DF]'
       }`;
       featuredToggleBtn.innerHTML = `<span>${isFeaturedChoice ? '⭐ Flagged Featured' : '☆ Not Featured'}</span>`;
+    });
+  }
+
+  // COD Toggle in modal
+  const codToggleBtn = modal.querySelector('#qe-cod-toggle-btn');
+  if (codToggleBtn) {
+    codToggleBtn.addEventListener('click', () => {
+      isCodAvailableChoice = !isCodAvailableChoice;
+      codToggleBtn.className = `px-3.5 py-2 rounded-xl border text-[10px] font-bold uppercase tracking-wider transition-all ${
+        isCodAvailableChoice ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-white text-stone-500 border-stone-300'
+      }`;
+      codToggleBtn.innerHTML = `<span>${isCodAvailableChoice ? '✓ COD Enabled' : '✕ Prepaid Only'}</span>`;
     });
   }
 
@@ -1341,6 +1374,7 @@ export function showQuickEditModal(product, onSaveCallback) {
         discountPercentage,
         badge: badge || null,
         featured: isFeaturedChoice,
+        cod_available: isCodAvailableChoice,
         description,
         fabricDetails,
         sizes: Array.from(modalSelectedSizes),
@@ -1489,7 +1523,7 @@ export function showQuickViewModal(product) {
             <div class="flex items-center gap-1.5 font-bold uppercase tracking-wider">
               <span>⚡ Pan-India Express Fulfillment</span>
             </div>
-            <p class="leading-relaxed font-medium">Dispatched in 24–48 Hours &bull; Delivery in 4–7 Days &bull; Cash on Delivery Available</p>
+            <p class="leading-relaxed font-medium">Dispatched in 24–48 Hours &bull; Delivery in 4–7 Days &bull; ${product.cod_available === true ? 'Cash on Delivery Available' : 'Prepaid Express Only'}</p>
           </div>
 
           <!-- Sizes Selection -->
@@ -1579,7 +1613,11 @@ export function showQuickViewModal(product) {
                 <p class="font-light leading-relaxed">We provide insured express courier delivery across all 28 states & UTs:</p>
                 <ul class="list-disc pl-4 space-y-1 text-[11px]">
                   <li><strong>Fast Dispatch:</strong> Dispatched from atelier in 24–48 hours.</li>
-                  <li><strong>Cash on Delivery (COD):</strong> Available with 100% money-back authenticity guarantee.</li>
+                  ${product.cod_available === true ? `
+                    <li><strong>Cash on Delivery (COD):</strong> Available at your doorstep across serviceable PIN codes.</li>
+                  ` : `
+                    <li><strong>Payment Terms:</strong> Prepaid Express Order Only (Instant UPI / Secure Card Payment). Cash on Delivery is unavailable for this artisanal piece.</li>
+                  `}
                   <li><strong>Hassle-Free Returns:</strong> 7-day doorstep replacement support.</li>
                 </ul>
               </div>
@@ -1788,6 +1826,7 @@ export function showQuickViewModal(product) {
 
     if (existingIndex > -1) {
       cart[existingIndex].quantity += currentQty;
+      cart[existingIndex].cod_available = product.cod_available === true;
     } else {
       cart.push({
         productId: product.id,
@@ -1795,7 +1834,8 @@ export function showQuickViewModal(product) {
         price: product.price,
         size: selectedSize,
         quantity: currentQty,
-        image: mainImg
+        image: mainImg,
+        cod_available: product.cod_available === true
       });
     }
 

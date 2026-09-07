@@ -785,6 +785,12 @@ export function initAdmin(containerId) {
               <input type="text" id="prod-fabric" placeholder="e.g. 100% Pure Georgette Silk. Dry clean only." class="w-full min-h-[48px] bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-3 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
             </div>
 
+            <!-- COD Availability Toggle -->
+            <div class="flex items-center gap-2.5 p-3 rounded-xl bg-[#F9F8F6] border border-[#E5E3DF]">
+              <input type="checkbox" id="prod-cod-available" class="w-4 h-4 text-emerald-600 rounded cursor-pointer accent-[#1A1A1A]" />
+              <label for="prod-cod-available" class="text-xs font-medium text-[#1A1A1A] cursor-pointer select-none">Enable Cash on Delivery (COD) for this item</label>
+            </div>
+
             <button type="submit" id="add-product-submit-btn" class="w-full min-h-[48px] bg-[#1A1A1A] hover:bg-[#C5A880] hover:text-[#1A1A1A] text-white text-xs uppercase tracking-widest font-semibold transition-all duration-300 rounded-xl focus:outline-none shadow-md flex items-center justify-center">
               Add to Storefront Catalog
             </button>
@@ -840,6 +846,7 @@ export function initAdmin(containerId) {
                   <th scope="col" class="pb-3">Category</th>
                   <th scope="col" class="pb-3">Price</th>
                   <th scope="col" class="pb-3">Featured ⭐</th>
+                  <th scope="col" class="pb-3">COD</th>
                   <th scope="col" class="pb-3">Stock</th>
                   <th scope="col" class="pb-3 text-right">Actions</th>
                 </tr>
@@ -847,7 +854,7 @@ export function initAdmin(containerId) {
               <tbody class="divide-y divide-[#E5E3DF] text-xs">
                 ${filteredProducts.length === 0 ? `
                   <tr>
-                    <td colspan="7" class="py-8 text-center text-xs text-[#8A8A8A]">
+                    <td colspan="8" class="py-8 text-center text-xs text-[#8A8A8A]">
                       No products found matching category "${inventoryCategory}" or search query "${inventorySearch}".
                     </td>
                   </tr>
@@ -892,6 +899,19 @@ export function initAdmin(containerId) {
                         >
                           <span>${product.featured ? '⭐ Featured' : '☆ Feature'}</span>
                         </button>
+                      </td>
+
+                      <!-- COD Badge -->
+                      <td class="py-3.5">
+                        ${product.cod_available === true ? `
+                          <span class="px-2.5 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+                            ✓ COD
+                          </span>
+                        ` : `
+                          <span class="px-2.5 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider bg-stone-100 text-stone-500 border border-stone-200 whitespace-nowrap">
+                            Prepaid
+                          </span>
+                        `}
                       </td>
 
                       <!-- Stock Status Toggle Badge -->
@@ -956,7 +976,14 @@ export function initAdmin(containerId) {
                     <div>
                       <p class="font-medium text-[#1A1A1A] text-xs line-clamp-1">${product.title}</p>
                       <div class="flex items-center justify-between mt-0.5 text-[10px] text-[#5A5A5A]">
-                        <span class="uppercase tracking-widest font-semibold">${product.category}</span>
+                        <div class="flex items-center gap-1.5">
+                          <span class="uppercase tracking-widest font-semibold">${product.category}</span>
+                          <span class="text-[8px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full ${
+                            product.cod_available === true ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-stone-100 text-stone-500 border border-stone-200'
+                          }">
+                            ${product.cod_available === true ? 'COD' : 'Prepaid Only'}
+                          </span>
+                        </div>
                         <span class="font-mono text-[8px]">${product.id}</span>
                       </div>
                       <div class="flex items-baseline gap-2 mt-0.5">
@@ -1388,6 +1415,8 @@ export function initAdmin(containerId) {
 
         const id = "prod-" + Date.now();
         const discountPercentage = Math.round(((originalPrice - price) / originalPrice) * 100);
+        const codAvailableInput = document.getElementById('prod-cod-available');
+        const cod_available = codAvailableInput ? codAvailableInput.checked : false;
 
         const newProduct = {
           id,
@@ -1398,6 +1427,7 @@ export function initAdmin(containerId) {
           discountPercentage,
           badge: badge || null,
           featured: false,
+          cod_available,
           description,
           fabricDetails,
           sizes,

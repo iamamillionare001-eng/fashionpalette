@@ -181,7 +181,7 @@ export function initCheckout(containerId) {
               <label class="cursor-pointer border border-[#1A1A1A] bg-stone-50 rounded-xl p-3.5 flex flex-col space-y-1.5 transition-all shadow-xs relative" id="pay-cod-card">
                 <input type="radio" name="pay-method" value="COD" checked class="absolute top-3 right-3 accent-[#C5A880] h-3.5 w-3.5 cursor-pointer" />
                 <span class="text-[10px] uppercase tracking-wider font-bold text-[#1A1A1A]">Cash on Delivery</span>
-                <span class="text-[8px] text-[#5A5A5A] leading-tight font-medium">Verify & pay at door</span>
+                <span class="text-[8px] text-[#5A5A5A] leading-tight font-medium" id="pay-cod-desc">Verify & pay at door</span>
               </label>
 
               <!-- UPI Card Option -->
@@ -190,6 +190,12 @@ export function initCheckout(containerId) {
                 <span class="text-[10px] uppercase tracking-wider font-bold text-[#1A1A1A]">Prepaid / UPI</span>
                 <span class="text-[8px] text-[#5A5A5A] leading-tight font-medium">Instant QR/UPI ID</span>
               </label>
+            </div>
+
+            <!-- COD Disabled Notice (Conditional for non-COD cart items) -->
+            <div id="cod-disabled-notice" class="p-3 bg-amber-50/80 border border-amber-200/80 rounded-xl text-[10px] text-amber-900 leading-relaxed font-medium hidden animate-fadeIn flex items-start gap-2">
+              <span class="text-amber-700 mt-0.5">⚠️</span>
+              <span><strong>Notice:</strong> One or more exclusive items in your bag require Prepaid Confirmation (UPI / Card).</span>
             </div>
 
             <!-- UPI Details Box (Conditional) -->
@@ -535,6 +541,20 @@ export function initCheckout(containerId) {
   // Re-render when cart updating elsewhere
   window.addEventListener("fp_cart_updated", renderCartDrawerItems);
 
+  // Helper to determine if all items in current bag support Cash on Delivery
+  function isCodAvailableForCart() {
+    const cart = getCart();
+    if (cart.length === 0) return false;
+    const cachedProducts = JSON.parse(localStorage.getItem('fp_products_data') || '[]');
+    return cart.every(item => {
+      if (typeof item.cod_available === 'boolean') {
+        return item.cod_available;
+      }
+      const prod = cachedProducts.find(p => p.id === item.productId);
+      return prod ? (prod.cod_available === true) : false;
+    });
+  }
+
   // --- Checkout Modal Control Logic ---
   function openCheckoutModal() {
     closeCartDrawer();
@@ -565,8 +585,9 @@ export function initCheckout(containerId) {
 
     checkoutRecapTotal.innerText = `₹${totalPayable.toLocaleString('en-IN')}`;
 
-    // Select default COD card styling
-    selectPaymentMethod("COD");
+    // Select default payment method based on COD availability
+    const codAllowed = isCodAvailableForCart();
+    selectPaymentMethod(codAllowed ? "COD" : "UPI");
 
     // Clear form inputs
     checkoutForm.reset();
@@ -611,6 +632,29 @@ export function initCheckout(containerId) {
   function selectPaymentMethod(method) {
     const codRadio = payCodCard.querySelector("input");
     const upiRadio = payUpiCard.querySelector("input");
+    const codNotice = document.getElementById("cod-disabled-notice");
+    const codDesc = document.getElementById("pay-cod-desc");
+    const codAllowed = isCodAvailableForCart();
+
+    if (!codAllowed) {
+      // Force Prepaid / UPI mode because one or more items don't support COD
+      codRadio.disabled = true;
+      codRadio.checked = false;
+      payCodCard.className = "opacity-40 cursor-not-allowed border border-[#E5E3DF] bg-stone-100/90 rounded-xl p-3.5 flex flex-col space-y-1.5 transition-all relative select-none pointer-events-none";
+      if (codDesc) codDesc.innerText = "Unavailable for this bag";
+      if (codNotice) codNotice.classList.remove("hidden");
+
+      upiRadio.checked = true;
+      payUpiCard.className = "cursor-pointer border border-[#1A1A1A] bg-stone-50 rounded-xl p-3.5 flex flex-col space-y-1.5 transition-all shadow-xs relative";
+      upiDetailsBox.classList.remove("hidden");
+      checkoutSubmitBtn.innerText = "Place Order via UPI Transfer";
+      return;
+    }
+
+    // COD is enabled for entire bag
+    codRadio.disabled = false;
+    if (codDesc) codDesc.innerText = "Verify & pay at door";
+    if (codNotice) codNotice.classList.add("hidden");
 
     if (method === "COD") {
       codRadio.checked = true;
@@ -628,6 +672,7 @@ export function initCheckout(containerId) {
   }
 
   payCodCard.addEventListener("click", (e) => {
+    if (!isCodAvailableForCart()) return;
     selectPaymentMethod("COD");
   });
 
