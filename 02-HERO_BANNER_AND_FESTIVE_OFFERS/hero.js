@@ -86,7 +86,7 @@ function isLiveEditActive() {
   return sessionStorage.getItem('admin_authenticated') === 'true' && localStorage.getItem('fp_live_edit_mode') === 'true';
 }
 
-let activeCategory = 'All Festive';
+let activeCategory = 'Featured';
 let carouselTimer = null;
 let currentSlideIndex = 0;
 let currentSlidesData = [];
@@ -256,7 +256,7 @@ export function initHero(containerId) {
     <div class="bg-transparent py-6 border-b border-[var(--color-border-subtle)]">
       <div class="max-w-7xl mx-auto px-4">
         <div class="flex overflow-x-auto whitespace-nowrap gap-3 pb-2 justify-start md:justify-center no-scrollbar" id="category-strip-container">
-          ${['All Festive', 'Women', 'Men', 'Couple', 'Kids', 'Elders'].map(cat => {
+          ${['Featured', 'Women', 'Men', 'Couple', 'Kids', 'Elders'].map(cat => {
             const isActive = cat === activeCategory;
             return `
               <button 

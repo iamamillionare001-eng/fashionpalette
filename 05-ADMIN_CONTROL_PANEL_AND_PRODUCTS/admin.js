@@ -7,6 +7,7 @@
 
 import { storeConfig } from '../07-STORE_SETTINGS_AND_THEME_COLORS/store_config.js';
 import { initHero, getHeroConfig } from '../02-HERO_BANNER_AND_FESTIVE_OFFERS/hero.js';
+import { showQuickEditModal } from '../03-PRODUCT_CARDS_AND_IMAGE_GALLERY/gallery.js';
 import { 
   uploadToImgBB, 
   subscribeToProducts, 
@@ -612,11 +613,25 @@ export function initAdmin(containerId) {
   }
 
   // TAB 2: MANAGE STORE PRODUCTS
+  let inventoryCategory = "All";
+  let inventorySearch = "";
+
   function renderProductsTab() {
     const tabContent = document.getElementById('admin-tab-content-container');
     if (!tabContent) return;
 
     const products = getProducts();
+
+    // Filter products based on inventory category and search
+    const filteredProducts = products.filter(product => {
+      const matchesCat = inventoryCategory === "All" || (product.category && product.category.toLowerCase() === inventoryCategory.toLowerCase());
+      const q = inventorySearch.toLowerCase().trim();
+      const matchesQ = !q || 
+        (product.title && product.title.toLowerCase().includes(q)) || 
+        (product.id && product.id.toLowerCase().includes(q)) || 
+        (product.category && product.category.toLowerCase().includes(q));
+      return matchesCat && matchesQ;
+    });
 
     tabContent.innerHTML = `
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-fadeIn">
@@ -777,60 +792,113 @@ export function initAdmin(containerId) {
         </div>
 
         <!-- Right: Active Products Inventory (col-span-7) -->
-        <div class="lg:col-span-7 bg-white border border-[#E5E3DF] p-6 rounded-2xl shadow-sm overflow-hidden">
-          <div>
-            <h3 class="text-sm uppercase tracking-wider text-[#1A1A1A] font-bold border-b border-[#E5E3DF] pb-3">
-              Product Inventory (${products.length} Items)
+        <div class="lg:col-span-7 bg-white border border-[#E5E3DF] p-6 rounded-2xl shadow-sm overflow-hidden space-y-4">
+          <div class="flex items-center justify-between border-b border-[#E5E3DF] pb-3">
+            <h3 class="text-sm uppercase tracking-wider text-[#1A1A1A] font-bold">
+              Product Inventory (${products.length} Total &bull; ${filteredProducts.length} Displayed)
             </h3>
           </div>
 
+          <!-- Category Filter Chips -->
+          <div class="flex flex-wrap items-center gap-1.5" id="admin-category-filter-chips">
+            ${["All", "Women", "Men", "Couple", "Kids", "Elders", "Accessories"].map(cat => `
+              <button 
+                type="button" 
+                data-inv-category="${cat}" 
+                class="inv-cat-pill px-3 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-wider border transition-all ${
+                  inventoryCategory.toLowerCase() === cat.toLowerCase()
+                    ? 'bg-[#1A1A1A] text-white border-[#1A1A1A] shadow-xs'
+                    : 'bg-white text-[#5A5A5A] border-[#E5E3DF] hover:border-[#1A1A1A]'
+                }"
+              >
+                ${cat}
+              </button>
+            `).join('')}
+          </div>
+
+          <!-- Live Real-Time Search Bar -->
+          <div class="relative">
+            <input 
+              type="text" 
+              id="admin-inventory-search" 
+              placeholder="Search products by title or SKU..." 
+              value="${inventorySearch}" 
+              class="w-full bg-[#F9F8F6] border border-[#E5E3DF] pl-9 pr-4 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" 
+            />
+            <svg class="w-4 h-4 text-stone-400 absolute left-3 top-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+
           <!-- Desktop Inventory Table View -->
-          <div class="hidden md:block overflow-x-auto mt-4">
+          <div class="hidden md:block overflow-x-auto">
             <table class="min-w-full divide-y divide-[#E5E3DF]">
               <thead>
                 <tr class="text-[9px] uppercase tracking-widest font-semibold text-[#8A8A8A] text-left">
-                  <th scope="col" class="pb-3 w-16">Item</th>
-                  <th scope="col" class="pb-3 pl-4">Details</th>
+                  <th scope="col" class="pb-3 w-14">Item</th>
+                  <th scope="col" class="pb-3 pl-3">Details</th>
                   <th scope="col" class="pb-3">Category</th>
                   <th scope="col" class="pb-3">Price</th>
-                  <th scope="col" class="pb-3">Stock Status</th>
-                  <th scope="col" class="pb-3 text-right">Action</th>
+                  <th scope="col" class="pb-3">Featured ⭐</th>
+                  <th scope="col" class="pb-3">Stock</th>
+                  <th scope="col" class="pb-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-[#E5E3DF] text-xs">
-                ${products.map(product => {
-                  const firstImg = product.images && product.images.length > 0 ? product.images[0] : "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=80&q=80";
+                ${filteredProducts.length === 0 ? `
+                  <tr>
+                    <td colspan="7" class="py-8 text-center text-xs text-[#8A8A8A]">
+                      No products found matching category "${inventoryCategory}" or search query "${inventorySearch}".
+                    </td>
+                  </tr>
+                ` : filteredProducts.map(product => {
+                  const firstImg = product.images && product.images.length > 0 ? product.images[0] : (product.image || "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=80&q=80");
                   return `
                     <tr class="align-middle group">
                       <!-- Image Thumbnail -->
-                      <td class="py-4">
-                        <div class="w-12 h-16 rounded-lg overflow-hidden border border-[#E5E3DF] bg-stone-50">
+                      <td class="py-3.5">
+                        <div class="w-11 h-14 rounded-lg overflow-hidden border border-[#E5E3DF] bg-stone-50">
                           <img src="${firstImg}" class="w-full h-full object-cover" />
                         </div>
                       </td>
                       
                       <!-- Title & ID -->
-                      <td class="py-4 pl-4 max-w-[150px]">
+                      <td class="py-3.5 pl-3 max-w-[140px]">
                         <p class="font-medium text-[#1A1A1A] truncate">${product.title}</p>
                         <p class="text-[9px] text-[#8A8A8A] font-mono mt-0.5">${product.id}</p>
                       </td>
 
                       <!-- Category -->
-                      <td class="py-4 text-[#5A5A5A] uppercase tracking-wider text-[10px]">
+                      <td class="py-3.5 text-[#5A5A5A] uppercase tracking-wider text-[10px]">
                         ${product.category}
                       </td>
 
                       <!-- Price/MRP -->
-                      <td class="py-4 font-semibold text-[#1A1A1A]">
+                      <td class="py-3.5 font-semibold text-[#1A1A1A]">
                         ₹${product.price}
                         <p class="text-[9px] text-[#8A8A8A] line-through font-normal">₹${product.originalPrice}</p>
                       </td>
 
+                      <!-- Featured ⭐ 1-Tap Toggle -->
+                      <td class="py-3.5">
+                        <button 
+                          data-featured-id="${product.id}"
+                          class="featured-toggle-btn px-2.5 py-1.5 rounded-full text-[9px] uppercase tracking-wider font-bold border transition-all flex items-center gap-1 ${
+                            product.featured 
+                              ? 'bg-amber-50 text-amber-900 border-amber-300 shadow-xs' 
+                              : 'bg-stone-50 text-stone-500 border-stone-200 hover:border-stone-400'
+                          }"
+                          title="${product.featured ? 'Featured on storefront (Click to unfeature)' : 'Click to feature on storefront'}"
+                        >
+                          <span>${product.featured ? '⭐ Featured' : '☆ Feature'}</span>
+                        </button>
+                      </td>
+
                       <!-- Stock Status Toggle Badge -->
-                      <td class="py-4">
+                      <td class="py-3.5">
                         <button 
                           data-toggle-id="${product.id}"
-                          class="stock-toggle-badge px-4 py-2 min-h-[48px] flex items-center justify-center rounded-full text-[9px] uppercase tracking-widest font-bold border transition-all ${
+                          class="stock-toggle-badge px-3 py-1.5 rounded-full text-[9px] uppercase tracking-widest font-bold border transition-all ${
                             product.inStock 
                               ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' 
                               : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
@@ -840,14 +908,26 @@ export function initAdmin(containerId) {
                         </button>
                       </td>
 
-                      <!-- Actions -->
-                      <td class="py-4 text-right">
-                        <button 
-                          data-delete-id="${product.id}"
-                          class="delete-product-btn min-h-[48px] text-rose-600 hover:text-rose-900 border border-rose-200 hover:border-rose-600 rounded-xl px-4 bg-rose-50/50 hover:bg-rose-50 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none"
-                        >
-                          Delete
-                        </button>
+                      <!-- Actions: EDIT & DELETE -->
+                      <td class="py-3.5 text-right">
+                        <div class="flex items-center justify-end gap-1.5">
+                          <button 
+                            data-edit-id="${product.id}"
+                            class="edit-product-btn text-amber-900 hover:text-[#1A1A1A] border border-[#C5A880] hover:border-[#1A1A1A] rounded-xl px-2.5 py-1.5 bg-amber-500/10 hover:bg-[#C5A880] text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none flex items-center gap-1"
+                            title="Quick Edit Product Details & Gallery"
+                          >
+                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                            <span>Edit</span>
+                          </button>
+                          <button 
+                            data-delete-id="${product.id}"
+                            class="delete-product-btn text-rose-600 hover:text-rose-900 border border-rose-200 hover:border-rose-600 rounded-xl px-2.5 py-1.5 bg-rose-50/50 hover:bg-rose-50 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   `;
@@ -857,47 +937,69 @@ export function initAdmin(containerId) {
           </div>
 
           <!-- Mobile Inventory Card View -->
-          <div class="block md:hidden mt-4 space-y-4">
-            ${products.map(product => {
-              const firstImg = product.images && product.images.length > 0 ? product.images[0] : "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=80&q=80";
+          <div class="block md:hidden space-y-4">
+            ${filteredProducts.length === 0 ? `
+              <div class="text-center py-6 text-xs text-[#8A8A8A] bg-[#F9F8F6] rounded-xl border border-[#E5E3DF]">
+                No matching products found.
+              </div>
+            ` : filteredProducts.map(product => {
+              const firstImg = product.images && product.images.length > 0 ? product.images[0] : (product.image || "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=80&q=80");
               return `
                 <div class="bg-[#F9F8F6] border border-[#E5E3DF] p-4 rounded-2xl flex items-start gap-4 shadow-xs">
                   <!-- Thumbnail -->
-                  <div class="w-16 h-20 rounded-xl overflow-hidden border border-[#E5E3DF] bg-stone-50 flex-shrink-0">
+                  <div class="w-16 h-22 rounded-xl overflow-hidden border border-[#E5E3DF] bg-stone-50 flex-shrink-0">
                     <img src="${firstImg}" class="w-full h-full object-cover" />
                   </div>
 
                   <!-- Details & Actions -->
-                  <div class="flex-grow space-y-2.5">
+                  <div class="flex-grow space-y-2">
                     <div>
                       <p class="font-medium text-[#1A1A1A] text-xs line-clamp-1">${product.title}</p>
-                      <div class="flex items-center justify-between mt-1 text-[10px] text-[#5A5A5A]">
+                      <div class="flex items-center justify-between mt-0.5 text-[10px] text-[#5A5A5A]">
                         <span class="uppercase tracking-widest font-semibold">${product.category}</span>
                         <span class="font-mono text-[8px]">${product.id}</span>
                       </div>
-                      <div class="flex items-baseline gap-2 mt-1">
+                      <div class="flex items-baseline gap-2 mt-0.5">
                         <span class="font-semibold text-xs text-[#1A1A1A]">₹${product.price}</span>
                         <span class="text-[9px] text-[#8A8A8A] line-through font-normal">₹${product.originalPrice}</span>
                       </div>
                     </div>
 
-                    <!-- Touch Targets Stock Toggle & Delete Button -->
+                    <!-- 1-Tap Featured Button Badge -->
+                    <button 
+                      data-featured-id="${product.id}"
+                      class="featured-toggle-btn w-full py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold border transition-all flex items-center justify-center gap-1 ${
+                        product.featured 
+                          ? 'bg-amber-50 text-amber-900 border-amber-300' 
+                          : 'bg-white text-stone-500 border-stone-200'
+                      }"
+                    >
+                      <span>${product.featured ? '⭐ Featured Piece' : '☆ Mark as Featured'}</span>
+                    </button>
+
+                    <!-- Touch Targets Stock Toggle, EDIT & Delete Buttons -->
                     <div class="flex gap-2">
                       <button 
                         data-toggle-id="${product.id}"
-                        class="stock-toggle-badge flex-1 min-h-[48px] rounded-xl text-[9px] uppercase tracking-widest font-bold border transition-all flex items-center justify-center ${
+                        class="stock-toggle-badge flex-1 min-h-[40px] rounded-xl text-[9px] uppercase tracking-widest font-bold border transition-all flex items-center justify-center ${
                           product.inStock 
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' 
                             : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
                         }"
                       >
-                        ${product.inStock ? "In Stock" : "Out of Stock"}
+                        ${product.inStock ? "In Stock" : "Out"}
+                      </button>
+                      <button 
+                        data-edit-id="${product.id}"
+                        class="edit-product-btn px-3 min-h-[40px] text-amber-900 hover:text-[#1A1A1A] border border-[#C5A880] rounded-xl bg-amber-500/10 hover:bg-[#C5A880] text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none flex items-center justify-center gap-1"
+                      >
+                        Edit
                       </button>
                       <button 
                         data-delete-id="${product.id}"
-                        class="delete-product-btn px-4 min-h-[48px] text-rose-600 hover:text-rose-900 border border-rose-200 hover:border-rose-600 rounded-xl bg-rose-50/50 hover:bg-rose-50 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none flex items-center justify-center"
+                        class="delete-product-btn px-3 min-h-[40px] text-rose-600 hover:text-rose-900 border border-rose-200 hover:border-rose-600 rounded-xl bg-rose-50/50 hover:bg-rose-50 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none flex items-center justify-center"
                       >
-                        Delete
+                        Del
                       </button>
                     </div>
                   </div>
@@ -910,13 +1012,12 @@ export function initAdmin(containerId) {
       </div>
     `;
 
-    // 1. Render size selection pills
+    // 1. Render size selection pills for creation form
     function renderSizeChips() {
       const standardContainer = document.getElementById('standard-sizes-chips');
       const coupleContainer = document.getElementById('couple-sizes-chips');
       if (!standardContainer || !coupleContainer) return;
 
-      // Standard chips
       standardContainer.innerHTML = defaultApparelSizes.map(size => {
         const isSelected = selectedSizes.has(size);
         return `
@@ -930,7 +1031,6 @@ export function initAdmin(containerId) {
         `;
       }).join('');
 
-      // Couple and Custom chips
       const allCoupleAndCustom = [...defaultCoupleSizes, ...customSizes];
       coupleContainer.innerHTML = allCoupleAndCustom.map(size => {
         const isSelected = selectedSizes.has(size);
@@ -945,7 +1045,6 @@ export function initAdmin(containerId) {
         `;
       }).join('');
 
-      // Hook up listeners
       const chips = tabContent.querySelectorAll('.size-chip');
       chips.forEach(chip => {
         chip.addEventListener('click', () => {
@@ -962,7 +1061,7 @@ export function initAdmin(containerId) {
 
     renderSizeChips();
 
-    // Hook up custom size quick-add
+    // Custom size quick-add
     const quickAddBtn = document.getElementById('quick-add-size-btn');
     const inputWrapper = document.getElementById('custom-size-input-wrapper');
     const customSizeInput = document.getElementById('custom-size-input');
@@ -995,7 +1094,7 @@ export function initAdmin(containerId) {
       });
     }
 
-    // 2. Direct File Upload & Drag-and-Drop: Main Image Setup
+    // 2. Main Image Mode & Dropzone
     const mainImgModeUpload = document.getElementById('main-img-mode-upload');
     const mainImgModeUrl = document.getElementById('main-img-mode-url');
     const mainUploadZone = document.getElementById('main-image-upload-zone');
@@ -1059,7 +1158,7 @@ export function initAdmin(containerId) {
         renderMainPreview();
       } catch (err) {
         console.error("Main Image Upload Error:", err);
-        alert("⚠️ ImgBB Upload Failed: " + (err.message || "Network Error") + "\nYou can also switch to 'Image URL Link' mode.");
+        alert("⚠️ ImgBB Upload Failed: " + (err.message || "Network Error"));
       } finally {
         mainDropzone.innerHTML = `
           <div class="space-y-1.5 pointer-events-none">
@@ -1105,7 +1204,7 @@ export function initAdmin(containerId) {
 
     renderMainPreview();
 
-    // 3. Direct File Upload & Drag-and-Drop: Gallery Setup
+    // 3. Gallery Images Mode & Dropzone
     const galleryImgModeUpload = document.getElementById('gallery-img-mode-upload');
     const galleryImgModeUrl = document.getElementById('gallery-img-mode-url');
     const galleryUploadZone = document.getElementById('gallery-image-upload-zone');
@@ -1154,7 +1253,7 @@ export function initAdmin(containerId) {
         }
       } catch (err) {
         console.error("Gallery Upload Error:", err);
-        alert("⚠️ ImgBB Upload Failed: " + (err.message || "Network Error") + "\nYou can also switch to 'Image URL Link' mode.");
+        alert("⚠️ ImgBB Upload Failed: " + (err.message || "Network Error"));
       } finally {
         galleryDropzone.innerHTML = `
           <div class="space-y-1.5 pointer-events-none">
@@ -1217,13 +1316,35 @@ export function initAdmin(containerId) {
 
     renderGalleryPreviews();
 
-    // Hook Up Add Product Form Listener
+    // 4. Hook Up Category Filter Chips & Live Search Bar Listeners
+    const catPills = tabContent.querySelectorAll('.inv-cat-pill');
+    catPills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        inventoryCategory = pill.getAttribute('data-inv-category');
+        renderProductsTab();
+      });
+    });
+
+    const searchInput = tabContent.querySelector('#admin-inventory-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        inventorySearch = e.target.value;
+        renderProductsTab();
+        // Restore focus and cursor to the end
+        const newSearchInput = document.getElementById('admin-inventory-search');
+        if (newSearchInput) {
+          newSearchInput.focus();
+          newSearchInput.selectionStart = newSearchInput.selectionEnd = newSearchInput.value.length;
+        }
+      });
+    }
+
+    // 5. Hook Up Add Product Form Listener
     const form = document.getElementById('add-product-form');
     if (form) {
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        // Retrieve field values
         const title = document.getElementById('prod-title').value.trim();
         const category = document.getElementById('prod-category').value;
         const badge = document.getElementById('prod-badge').value.trim();
@@ -1238,7 +1359,6 @@ export function initAdmin(containerId) {
           return;
         }
 
-        // Determine main image URL/Base64
         let mainImage = "";
         if (mainImageMode === "upload") {
           if (!uploadedMainImage) {
@@ -1277,18 +1397,19 @@ export function initAdmin(containerId) {
           originalPrice,
           discountPercentage,
           badge: badge || null,
+          featured: false,
           description,
           fabricDetails,
           sizes,
           inStock: true,
-          images
+          images,
+          image: mainImage
         };
 
         await saveProductToCloud(newProduct);
         
         alert(`⚡ Product "${title}" has been saved and synchronized with Cloud Firestore!`);
 
-        // Reset state values
         selectedSizes.clear();
         selectedSizes.add("M");
         selectedSizes.add("L");
@@ -1301,10 +1422,41 @@ export function initAdmin(containerId) {
       });
     }
 
-    // Hook Up Stock Toggle Buttons (working on both mobile and desktop views)
+    // 6. Hook Up Featured ⭐ 1-Tap Toggle Buttons
+    const featuredBtns = tabContent.querySelectorAll('.featured-toggle-btn');
+    featuredBtns.forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-featured-id');
+        const prod = products.find(p => p.id === id);
+        if (prod) {
+          prod.featured = !prod.featured;
+          await saveProductToCloud(prod);
+          renderProductsTab();
+        }
+      });
+    });
+
+    // 7. Hook Up EDIT Product Buttons (invokes showQuickEditModal)
+    const editBtns = tabContent.querySelectorAll('.edit-product-btn');
+    editBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-edit-id');
+        const prod = products.find(p => p.id === id);
+        if (prod) {
+          showQuickEditModal(prod, () => {
+            renderProductsTab();
+          });
+        }
+      });
+    });
+
+    // 8. Hook Up Stock Toggle Buttons
     const stockBadges = tabContent.querySelectorAll('.stock-toggle-badge');
     stockBadges.forEach(badge => {
-      badge.addEventListener('click', async () => {
+      badge.addEventListener('click', async (e) => {
+        e.stopPropagation();
         const id = badge.getAttribute('data-toggle-id');
         const prod = products.find(p => p.id === id);
         if (prod) {
@@ -1314,10 +1466,11 @@ export function initAdmin(containerId) {
       });
     });
 
-    // Hook Up Delete Product Buttons (working on both mobile and desktop views)
+    // 9. Hook Up Delete Product Buttons
     const deleteBtns = tabContent.querySelectorAll('.delete-product-btn');
     deleteBtns.forEach(btn => {
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
         const id = btn.getAttribute('data-delete-id');
         const prod = products.find(p => p.id === id);
         if (prod && confirm(`Are you sure you want to delete "${prod.title}"?`)) {
