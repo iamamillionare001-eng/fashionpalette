@@ -166,17 +166,6 @@ export function initHero(containerId) {
         <!-- Text Columns (Left on Desktop) -->
         <div class="lg:col-span-7 flex flex-col justify-center space-y-8 text-left">
           
-          <!-- System Status Indicator Badge -->
-          <div class="inline-flex items-center space-x-2 self-start bg-[var(--color-surface-card)] border border-[var(--color-border-subtle)] px-3 py-1.5 rounded-[var(--border-radius-full)] shadow-sm">
-            <span class="relative flex h-2.5 w-2.5">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-            </span>
-            <span class="text-[10px] tracking-widest uppercase font-semibold text-[var(--color-text-secondary)]">
-              Step 13 Hero Studio & Universal Inline Editing Live
-            </span>
-          </div>
-
           <!-- Luxury Accent and Primary Headings with Editable Tags -->
           <div class="space-y-4">
             <span 

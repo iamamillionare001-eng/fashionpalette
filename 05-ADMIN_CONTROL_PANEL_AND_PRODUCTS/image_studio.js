@@ -456,3 +456,100 @@ function showStudioModal(imageDataUrl, resolve, reject, options) {
     });
   }
 }
+
+/**
+ * Opens a clean, high-resolution lightbox preview modal for cropped/enhanced images.
+ * @param {string} imageUrl - The image URL to preview
+ * @param {string} title - Optional title/label
+ */
+export function openImageLightbox(imageUrl, title = "High-Resolution Image Preview") {
+  if (!imageUrl) return;
+
+  const existing = document.getElementById('fp-image-lightbox-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'fp-image-lightbox-modal';
+  modal.className = 'fixed inset-0 z-[150] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 sm:p-6 transition-all duration-300 opacity-0';
+
+  modal.innerHTML = `
+    <div class="relative max-w-4xl w-full max-h-[92vh] flex flex-col items-center justify-center transform scale-95 opacity-0 transition-all duration-300" id="lightbox-card">
+      <!-- Top Header -->
+      <div class="w-full flex items-center justify-between pb-3 px-2 text-white">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-serif uppercase tracking-widest text-[#E5D5BA] font-bold">${title}</span>
+          <span class="text-[8px] uppercase tracking-widest font-semibold px-2 py-0.5 rounded-full bg-[#C5A880]/20 text-[#E5D5BA] border border-[#C5A880]/40">
+            Storefront High-Res View
+          </span>
+        </div>
+        <button 
+          id="lightbox-close-btn" 
+          class="w-9 h-9 rounded-full bg-white/10 hover:bg-[#C5A880] text-white hover:text-[#181513] flex items-center justify-center transition-all duration-200 focus:outline-none shadow-md"
+          title="Close Preview (Esc)"
+        >
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Image Display Frame -->
+      <div class="relative rounded-2xl overflow-hidden border border-[#C5A880]/40 shadow-2xl bg-stone-900 flex items-center justify-center max-h-[80vh] max-w-full">
+        <img 
+          src="${imageUrl}" 
+          alt="${title}" 
+          class="max-h-[78vh] max-w-[88vw] object-contain rounded-xl select-none" 
+        />
+      </div>
+
+      <!-- Bottom Caption -->
+      <div class="pt-3 text-center">
+        <p class="text-[10px] text-stone-400 uppercase tracking-widest font-light">
+          Enhanced Luxury Preset &bull; Tap Outside or Press ESC to Return
+        </p>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  document.body.classList.add('overflow-hidden');
+
+  setTimeout(() => {
+    modal.classList.remove('opacity-0');
+    modal.classList.add('opacity-100');
+    const card = document.getElementById('lightbox-card');
+    if (card) {
+      card.classList.remove('scale-95', 'opacity-0');
+      card.classList.add('scale-100', 'opacity-100');
+    }
+  }, 20);
+
+  function closeLightbox() {
+    const card = document.getElementById('lightbox-card');
+    if (card) {
+      card.classList.remove('scale-100', 'opacity-100');
+      card.classList.add('scale-95', 'opacity-0');
+    }
+    modal.classList.remove('opacity-100');
+    modal.classList.add('opacity-0');
+    setTimeout(() => {
+      modal.remove();
+      document.body.classList.remove('overflow-hidden');
+    }, 250);
+  }
+
+  const closeBtn = modal.querySelector('#lightbox-close-btn');
+  if (closeBtn) closeBtn.addEventListener('click', closeLightbox);
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeLightbox();
+  });
+
+  const onKeydown = (e) => {
+    if (e.key === 'Escape') {
+      closeLightbox();
+      document.removeEventListener('keydown', onKeydown);
+    }
+  };
+  document.addEventListener('keydown', onKeydown);
+}

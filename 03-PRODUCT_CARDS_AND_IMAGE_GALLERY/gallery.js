@@ -12,7 +12,7 @@ import {
   updateProductsSortOrderInCloud,
   uploadToImgBB 
 } from '../07-STORE_SETTINGS_AND_THEME_COLORS/firebase_sync.js';
-import { openImageCropperStudio, calculatePsychologicalPricing } from '../05-ADMIN_CONTROL_PANEL_AND_PRODUCTS/image_studio.js';
+import { openImageCropperStudio, calculatePsychologicalPricing, openImageLightbox } from '../05-ADMIN_CONTROL_PANEL_AND_PRODUCTS/image_studio.js';
 
 // Curated dropshipping apparel catalog for Ganesh Chaturthi and Festive 2026
 const DEFAULT_PRODUCTS = [
@@ -360,17 +360,17 @@ export function initGallery(containerId) {
                       />
                       
                       <!-- Non-Obstructive Bottom-Left Micro-Pill Badges (Keeping model faces completely clear) -->
-                      <div class="absolute bottom-2.5 left-2.5 flex flex-wrap gap-1 z-10 pointer-events-none max-w-[85%] transition-all">
-                        <span class="bg-black/50 backdrop-blur-sm text-white text-[10px] tracking-widest px-2.5 py-1 rounded-full uppercase font-medium shadow-sm">
+                      <div class="absolute bottom-2.5 left-2.5 flex flex-wrap items-center gap-[4px] z-10 pointer-events-none max-w-[85%] transition-all">
+                        <span style="background: rgba(18, 16, 14, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); color: #E5D5BA; border: 1px solid rgba(229, 213, 186, 0.35); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; padding: 4px 10px; border-radius: 9999px; font-weight: 500; line-height: 1;">
                           ${product.category}
                         </span>
                         ${isFeatured ? `
-                          <span class="bg-black/50 backdrop-blur-sm text-amber-300 border border-amber-400/40 text-[10px] tracking-widest px-2.5 py-1 rounded-full uppercase font-medium shadow-sm flex items-center gap-1">
+                          <span style="background: rgba(18, 16, 14, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); color: #E5D5BA; border: 1px solid rgba(229, 213, 186, 0.35); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; padding: 4px 10px; border-radius: 9999px; font-weight: 500; line-height: 1; display: inline-flex; align-items: center; gap: 3px;">
                             ⭐ Featured
                           </span>
                         ` : ''}
                         ${product.badge && product.badge !== 'Featured' ? `
-                          <span class="bg-black/50 backdrop-blur-sm text-white border border-white/20 text-[10px] tracking-widest px-2.5 py-1 rounded-full uppercase font-medium shadow-sm">
+                          <span style="background: rgba(18, 16, 14, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); color: #E5D5BA; border: 1px solid rgba(229, 213, 186, 0.35); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; padding: 4px 10px; border-radius: 9999px; font-weight: 500; line-height: 1;">
                             ${product.badge}
                           </span>
                         ` : ''}
@@ -415,13 +415,13 @@ export function initGallery(containerId) {
                         </div>
                       </div>
 
-                      <!-- Size Selector inside Card -->
-                      <div class="mt-3.5 space-y-1.5">
+                      <!-- Size Selector inside Card (Clean horizontal scrolling on mobile, no overflow wrapping) -->
+                      <div class="mt-2.5 sm:mt-3.5 space-y-1">
                         <p class="text-[8px] uppercase tracking-widest text-[#8A8A8A] font-semibold">Select Size</p>
-                        <div class="flex flex-wrap gap-1.5 size-selector-container">
+                        <div class="flex flex-nowrap sm:flex-wrap overflow-x-auto no-scrollbar gap-1 size-selector-container py-0.5 max-w-full">
                           ${product.sizes.map((size) => `
                             <button 
-                              class="size-pill border border-[#E5E3DF] text-[9px] uppercase font-medium px-2 py-1 rounded-md transition-all hover:border-[#1A1A1A]"
+                              class="size-pill flex-shrink-0 border border-[#E5E3DF] text-[8px] sm:text-[9px] uppercase font-medium px-2 py-1 rounded-md transition-all hover:border-[#1A1A1A] active:scale-95"
                               data-size="${size}"
                             >
                               ${size}
@@ -430,12 +430,12 @@ export function initGallery(containerId) {
                         </div>
                       </div>
 
-                      <!-- Actions Row -->
-                      <div class="mt-4 flex gap-2">
+                      <!-- Actions Row: Add to Bag (Charcoal + Champagne) & Circular Eye Preview -->
+                      <div class="mt-3 sm:mt-4 flex items-center gap-1.5 sm:gap-2">
                         ${editMode ? `
                           <!-- Direct Quick Edit CTA in Edit Mode -->
                           <button 
-                            class="card-quick-edit-btn flex-grow py-2.5 bg-amber-500/10 hover:bg-[#C5A880] text-[#1A1A1A] hover:text-white border border-[#C5A880] text-[10px] uppercase tracking-widest font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 focus:outline-none shadow-xs"
+                            class="card-quick-edit-btn flex-grow py-2 sm:py-2.5 bg-amber-500/10 hover:bg-[#C5A880] text-[#1A1A1A] hover:text-white border border-[#C5A880] text-[9px] sm:text-[10px] uppercase tracking-widest font-bold rounded-lg sm:rounded-xl transition-all flex items-center justify-center gap-1.5 focus:outline-none shadow-xs"
                             data-action-id="${product.id}"
                           >
                             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -445,18 +445,18 @@ export function initGallery(containerId) {
                           </button>
                         ` : `
                           <button 
-                            class="add-to-bag-btn flex-grow py-2.5 bg-[#1A1A1A] hover:bg-[#C5A880] hover:text-[#1A1A1A] text-white text-[10px] uppercase tracking-widest font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5 focus:outline-none"
+                            class="add-to-bag-btn flex-grow py-2 sm:py-2.5 bg-[#181513] hover:bg-[#C5A880] text-[#E5D5BA] hover:text-[#181513] text-[9px] sm:text-[10px] uppercase tracking-wider font-semibold rounded-lg sm:rounded-xl transition-all duration-300 flex items-center justify-center gap-1 sm:gap-1.5 focus:outline-none shadow-xs active:scale-[0.98]"
                             ${!product.inStock ? 'disabled' : ''}
                           >
-                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                             </svg>
-                            <span>Add to Bag</span>
+                            <span class="truncate">Add to Bag</span>
                           </button>
                           
                           <button 
-                            class="quick-view-btn w-9 h-9 border border-[#E5E3DF] text-[#1A1A1A] hover:border-[#1A1A1A] hover:bg-stone-50 rounded-lg flex items-center justify-center transition-all focus:outline-none"
-                            title="Product Details Drawer"
+                            class="quick-view-btn w-8 h-8 sm:w-9 sm:h-9 flex-shrink-0 rounded-full border border-[#DDD5C9] text-[#181513] hover:bg-[#F8F5F0] hover:border-[#181513] flex items-center justify-center transition-all duration-300 focus:outline-none shadow-2xs active:scale-95"
+                            title="Quick View Product Details"
                           >
                             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -945,6 +945,15 @@ export function showQuickEditModal(product, onSaveCallback) {
           <div class="flex items-start gap-3 bg-[#F9F8F6] p-3 rounded-2xl border border-[#E5E3DF]">
             <div class="w-16 h-22 rounded-xl overflow-hidden border-2 border-[#C5A880] bg-stone-100 flex-shrink-0 shadow-sm relative group">
               <img id="qe-current-img-preview" src="${mainImageChoice}" class="w-full h-full object-cover" />
+              <!-- Preview Eye Button (👁️) -->
+              <button 
+                type="button" 
+                id="qe-preview-main-img-btn" 
+                class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/80 hover:bg-amber-600 text-white text-[10px] flex items-center justify-center font-bold transition-all shadow-md focus:outline-none"
+                title="Preview High-Res Enhanced Photo"
+              >
+                👁️
+              </button>
               <span class="absolute bottom-0 inset-x-0 bg-[#1A1A1A]/80 text-[7px] text-amber-200 text-center font-bold uppercase py-0.5 tracking-wider">Main</span>
             </div>
             
@@ -1264,6 +1273,15 @@ export function showQuickEditModal(product, onSaveCallback) {
     });
   }
 
+  // Preview Main Image Lightbox
+  const qePreviewMainBtn = modal.querySelector('#qe-preview-main-img-btn');
+  if (qePreviewMainBtn) {
+    qePreviewMainBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openImageLightbox(mainImageChoice, `${product.title || 'Product'} • Main Cover Preview`);
+    });
+  }
+
   // Section B Gallery Dropzone Multi-Upload & Thumbnail Strip
   const galleryFileInput = modal.querySelector('#qe-gallery-file-input');
   const galleryDropzone = modal.querySelector('#qe-gallery-dropzone');
@@ -1294,15 +1312,27 @@ export function showQuickEditModal(product, onSaveCallback) {
           <div class="group/thumb relative aspect-[3/4] rounded-xl overflow-hidden border border-[#E5E3DF] bg-stone-100 shadow-xs flex flex-col justify-between">
             <img src="${imgUrl}" class="w-full h-full object-cover" />
             
-            <!-- Delete badge (✕) in top right -->
-            <button 
-              type="button" 
-              data-delete-idx="${idx}" 
-              class="qe-delete-gallery-img-btn absolute top-1 right-1 w-5 h-5 rounded-full bg-black/80 hover:bg-rose-600 text-white text-[9px] flex items-center justify-center font-bold transition-all shadow-md focus:outline-none"
-              title="Remove this photo"
-            >
-              ✕
-            </button>
+            <!-- Action buttons in top right -->
+            <div class="absolute top-1 right-1 flex items-center gap-1 z-10">
+              <!-- Preview Eye Button (👁️) -->
+              <button 
+                type="button" 
+                data-preview-idx="${idx}" 
+                class="qe-preview-gallery-img-btn w-5 h-5 rounded-full bg-black/80 hover:bg-amber-600 text-white text-[10px] flex items-center justify-center font-bold transition-all shadow-md focus:outline-none"
+                title="Preview High-Res Photo"
+              >
+                👁️
+              </button>
+              <!-- Delete badge (✕) in top right -->
+              <button 
+                type="button" 
+                data-delete-idx="${idx}" 
+                class="qe-delete-gallery-img-btn w-5 h-5 rounded-full bg-black/80 hover:bg-rose-600 text-white text-[9px] flex items-center justify-center font-bold transition-all shadow-md focus:outline-none"
+                title="Remove this photo"
+              >
+                ✕
+              </button>
+            </div>
 
             <!-- "Set as Main" Action Button -->
             <button 
@@ -1317,6 +1347,15 @@ export function showQuickEditModal(product, onSaveCallback) {
         `).join('')}
       </div>
     `;
+
+    // Hook up preview buttons
+    galleryStrip.querySelectorAll('.qe-preview-gallery-img-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute('data-preview-idx'), 10);
+        openImageLightbox(galleryImages[idx], `${product.title || 'Product'} • Gallery Photo #${idx + 1}`);
+      });
+    });
 
     // Hook up delete buttons
     galleryStrip.querySelectorAll('.qe-delete-gallery-img-btn').forEach(btn => {
@@ -1516,18 +1555,18 @@ export function showQuickViewModal(product) {
             class="w-full h-full object-cover transition-all duration-500 ease-out"
           />
           
-          <!-- Badges overlay -->
-          <div class="absolute top-4 left-4 flex flex-col gap-1.5 z-10 pointer-events-none">
-            <span class="bg-[#1A1A1A] text-white text-[9px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">
+          <!-- Badges overlay (Bottom Left Haute Couture Glassmorphism - Face Unobstructed) -->
+          <div class="absolute bottom-3 left-3 flex flex-wrap items-center gap-1 z-10 pointer-events-none">
+            <span class="inline-flex items-center text-[9px] uppercase tracking-[0.18em] font-medium px-2.5 py-1 rounded-full border shadow-sm" style="background: rgba(18, 16, 14, 0.7); backdrop-filter: blur(8px); color: #E5D5BA; border-color: rgba(229, 213, 186, 0.35);">
               ${product.category}
             </span>
             ${product.featured ? `
-              <span class="bg-[#C5A880] text-[#1A1A1A] text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-widest shadow-sm">
-                ⭐ Featured Piece
+              <span class="inline-flex items-center text-[9px] uppercase tracking-[0.18em] font-medium px-2.5 py-1 rounded-full border shadow-sm" style="background: rgba(18, 16, 14, 0.7); backdrop-filter: blur(8px); color: #E5D5BA; border-color: rgba(229, 213, 186, 0.35);">
+                ⭐ Featured
               </span>
             ` : ''}
             ${product.badge && product.badge !== 'Featured' ? `
-              <span class="bg-white/90 backdrop-blur-xs text-[#1A1A1A] text-[9px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-sm border border-[#E5E3DF]">
+              <span class="inline-flex items-center text-[9px] uppercase tracking-[0.18em] font-medium px-2.5 py-1 rounded-full border shadow-sm" style="background: rgba(18, 16, 14, 0.7); backdrop-filter: blur(8px); color: #E5D5BA; border-color: rgba(229, 213, 186, 0.35);">
                 ${product.badge}
               </span>
             ` : ''}

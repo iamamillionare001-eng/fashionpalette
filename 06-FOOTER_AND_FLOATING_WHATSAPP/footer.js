@@ -17,18 +17,28 @@ function init() {
     .faq-answer {
       max-height: 0;
       overflow: hidden;
-      transition: max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      font-size: 14px;
+      line-height: 1.6;
+      color: #453E39;
+      transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), padding 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .faq-answer.open {
-      max-height: 160px;
-      padding-top: 12px;
-      padding-bottom: 4px;
+      max-height: 220px;
+      padding-top: 10px;
+      padding-bottom: 20px;
     }
     .faq-chevron {
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s ease;
     }
     .faq-chevron.rotate {
       transform: rotate(180deg);
+      color: #8C2B32;
+    }
+    .faq-question-title {
+      transition: color 0.25s ease;
+    }
+    .faq-question-title.active {
+      color: #8C2B32 !important;
     }
     .wa-card-transition {
       transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -39,36 +49,36 @@ function init() {
   // Render HTML Structure
   container.innerHTML = `
     <!-- 1. TRUST ASSURANCE STRIP -->
-    <section class="bg-white border-t border-[#E5E3DF] py-16 w-full">
+    <section class="bg-white border-t border-[#E6DFD5] py-16 w-full">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           
           <!-- Assurance 1 -->
           <div class="flex flex-col items-center text-center space-y-2">
             <span class="text-2xl text-[#C5A880]">✨</span>
-            <h4 class="text-xs uppercase tracking-widest font-bold text-[#1A1A1A]">Handcrafted Quality</h4>
-            <p class="text-[10px] text-[#5A5A5A] max-w-[200px] leading-relaxed font-light">Verified pure Chanderi silks, handloom linens & organic cottons.</p>
+            <h4 class="font-serif text-base font-bold text-[#1F1A17] tracking-wide">Handcrafted Quality</h4>
+            <p class="text-sm text-[#453E39] max-w-[220px] leading-[1.6] font-normal">Verified pure Chanderi silks, handloom linens &amp; organic cottons.</p>
           </div>
 
           <!-- Assurance 2 -->
           <div class="flex flex-col items-center text-center space-y-2">
             <span class="text-2xl text-[#C5A880]">🚚</span>
-            <h4 class="text-xs uppercase tracking-widest font-bold text-[#1A1A1A]">Pan-India Shipping</h4>
-            <p class="text-[10px] text-[#5A5A5A] max-w-[200px] leading-relaxed font-light">Complimentary tracked delivery serving 19,000+ PIN codes.</p>
+            <h4 class="font-serif text-base font-bold text-[#1F1A17] tracking-wide">Pan-India Shipping</h4>
+            <p class="text-sm text-[#453E39] max-w-[220px] leading-[1.6] font-normal">Complimentary tracked delivery serving 19,000+ PIN codes.</p>
           </div>
 
           <!-- Assurance 3 -->
           <div class="flex flex-col items-center text-center space-y-2">
             <span class="text-2xl text-[#C5A880]">🔄</span>
-            <h4 class="text-xs uppercase tracking-widest font-bold text-[#1A1A1A]">Easy Size Exchanges</h4>
-            <p class="text-[10px] text-[#5A5A5A] max-w-[200px] leading-relaxed font-light">7-day hassle-free replacement support for the perfect fit.</p>
+            <h4 class="font-serif text-base font-bold text-[#1F1A17] tracking-wide">Easy Size Exchanges</h4>
+            <p class="text-sm text-[#453E39] max-w-[220px] leading-[1.6] font-normal">7-day hassle-free replacement support for the perfect fit.</p>
           </div>
 
           <!-- Assurance 4 -->
           <div class="flex flex-col items-center text-center space-y-2">
             <span class="text-2xl text-[#C5A880]">💳</span>
-            <h4 class="text-xs uppercase tracking-widest font-bold text-[#1A1A1A]">Cash on Delivery</h4>
-            <p class="text-[10px] text-[#5A5A5A] max-w-[200px] leading-relaxed font-light">Zero advance transaction fees. Pay at doorstep or via UPI.</p>
+            <h4 class="font-serif text-base font-bold text-[#1F1A17] tracking-wide">Cash on Delivery</h4>
+            <p class="text-sm text-[#453E39] max-w-[220px] leading-[1.6] font-normal">Zero advance transaction fees. Pay at doorstep or via UPI.</p>
           </div>
 
         </div>
@@ -76,66 +86,66 @@ function init() {
     </section>
 
     <!-- 2. EXPANDABLE FAQ ACCORDION -->
-    <section class="bg-[#F5F4F0] border-t border-[#E5E3DF] py-20 w-full">
+    <section class="bg-[#F9F8F6] border-t border-[#E6DFD5] py-20 w-full">
       <div class="max-w-3xl mx-auto px-4 sm:px-6">
         
         <!-- FAQ Title -->
         <div class="text-center mb-12 space-y-3">
-          <span class="text-[9px] uppercase tracking-[0.25em] text-[#C5A880] font-bold block">Assistance & Inquiry</span>
-          <h2 class="text-2xl font-serif text-[#1A1A1A] uppercase tracking-wider font-light">Frequently Asked Questions</h2>
-          <div class="h-[1px] w-10 bg-[#C5A880] mx-auto mt-2.5"></div>
+          <span class="text-[9px] uppercase tracking-[0.25em] text-[#C5A880] font-bold block">Assistance &amp; Inquiry</span>
+          <h2 class="text-2xl sm:text-3xl font-serif text-[#1F1A17] uppercase tracking-wider font-light">Frequently Asked Questions</h2>
+          <div class="h-[1px] w-12 bg-[#C5A880] mx-auto mt-2.5"></div>
         </div>
 
         <!-- FAQ Items -->
         <div class="space-y-4">
           <!-- Item 1 -->
-          <div class="border border-[#E5E3DF] rounded-2xl bg-white overflow-hidden shadow-xs">
-            <button class="faq-header-btn w-full px-6 py-4.5 text-left flex justify-between items-center focus:outline-none">
-              <span class="text-xs font-semibold text-[#1A1A1A] uppercase tracking-wider">How long will my order take to arrive?</span>
-              <svg class="faq-chevron w-4 h-4 text-[#C5A880]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 9l-7 7-7-7" />
+          <div class="border border-[#E6DFD5] rounded-2xl bg-white overflow-hidden shadow-xs hover:border-[#C5A880]/60 transition-all">
+            <button class="faq-header-btn w-full px-6 py-5 text-left flex justify-between items-center focus:outline-none group cursor-pointer">
+              <span class="faq-question-title font-serif text-base sm:text-[17px] font-medium text-[#1F1A17] tracking-normal">How long will my order take to arrive?</span>
+              <svg class="faq-chevron w-4 h-4 text-[#8A8A8A] group-hover:text-[#8C2B32] transition-colors flex-shrink-0 ml-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            <div class="faq-answer px-6 text-xs text-[#5A5A5A] leading-relaxed font-light">
+            <div class="faq-answer px-6 text-[14px] text-[#453E39] leading-[1.6] font-normal">
               All luxury garments are dispatched from our Taj Mansingh boulevard facility within 24–48 hours of order confirmation. Pan-India express delivery typically takes 4–7 business days, and complete WhatsApp tracking links will be shared.
             </div>
           </div>
 
           <!-- Item 2 -->
-          <div class="border border-[#E5E3DF] rounded-2xl bg-white overflow-hidden shadow-xs">
-            <button class="faq-header-btn w-full px-6 py-4.5 text-left flex justify-between items-center focus:outline-none">
-              <span class="text-xs font-semibold text-[#1A1A1A] uppercase tracking-wider">Is Cash on Delivery (COD) supported?</span>
-              <svg class="faq-chevron w-4 h-4 text-[#C5A880]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 9l-7 7-7-7" />
+          <div class="border border-[#E6DFD5] rounded-2xl bg-white overflow-hidden shadow-xs hover:border-[#C5A880]/60 transition-all">
+            <button class="faq-header-btn w-full px-6 py-5 text-left flex justify-between items-center focus:outline-none group cursor-pointer">
+              <span class="faq-question-title font-serif text-base sm:text-[17px] font-medium text-[#1F1A17] tracking-normal">Is Cash on Delivery (COD) supported?</span>
+              <svg class="faq-chevron w-4 h-4 text-[#8A8A8A] group-hover:text-[#8C2B32] transition-colors flex-shrink-0 ml-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            <div class="faq-answer px-6 text-xs text-[#5A5A5A] leading-relaxed font-light">
+            <div class="faq-answer px-6 text-[14px] text-[#453E39] leading-[1.6] font-normal">
               Yes, Cash on Delivery is fully supported across all serviceable domestic PIN codes without extra transactional markups. You can also pay the delivery agent via instant UPI upon doorstep package handoff.
             </div>
           </div>
 
           <!-- Item 3 -->
-          <div class="border border-[#E5E3DF] rounded-2xl bg-white overflow-hidden shadow-xs">
-            <button class="faq-header-btn w-full px-6 py-4.5 text-left flex justify-between items-center focus:outline-none">
-              <span class="text-xs font-semibold text-[#1A1A1A] uppercase tracking-wider">What if the size doesn't fit?</span>
-              <svg class="faq-chevron w-4 h-4 text-[#C5A880]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 9l-7 7-7-7" />
+          <div class="border border-[#E6DFD5] rounded-2xl bg-white overflow-hidden shadow-xs hover:border-[#C5A880]/60 transition-all">
+            <button class="faq-header-btn w-full px-6 py-5 text-left flex justify-between items-center focus:outline-none group cursor-pointer">
+              <span class="faq-question-title font-serif text-base sm:text-[17px] font-medium text-[#1F1A17] tracking-normal">What if the size doesn't fit?</span>
+              <svg class="faq-chevron w-4 h-4 text-[#8A8A8A] group-hover:text-[#8C2B32] transition-colors flex-shrink-0 ml-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            <div class="faq-answer px-6 text-xs text-[#5A5A5A] leading-relaxed font-light">
+            <div class="faq-answer px-6 text-[14px] text-[#453E39] leading-[1.6] font-normal">
               We offer a seamless 7-day size replacement and exchange window for all unworn garments with original tags intact. Simply contact our support concierge, and we will coordinate a complimentary reverse pickup from your address.
             </div>
           </div>
 
           <!-- Item 4 -->
-          <div class="border border-[#E5E3DF] rounded-2xl bg-white overflow-hidden shadow-xs">
-            <button class="faq-header-btn w-full px-6 py-4.5 text-left flex justify-between items-center focus:outline-none">
-              <span class="text-xs font-semibold text-[#1A1A1A] uppercase tracking-wider">How do sizes work for Couple Matching sets?</span>
-              <svg class="faq-chevron w-4 h-4 text-[#C5A880]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 9l-7 7-7-7" />
+          <div class="border border-[#E6DFD5] rounded-2xl bg-white overflow-hidden shadow-xs hover:border-[#C5A880]/60 transition-all">
+            <button class="faq-header-btn w-full px-6 py-5 text-left flex justify-between items-center focus:outline-none group cursor-pointer">
+              <span class="faq-question-title font-serif text-base sm:text-[17px] font-medium text-[#1F1A17] tracking-normal">How do sizes work for Couple Matching sets?</span>
+              <svg class="faq-chevron w-4 h-4 text-[#8A8A8A] group-hover:text-[#8C2B32] transition-colors flex-shrink-0 ml-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            <div class="faq-answer px-6 text-xs text-[#5A5A5A] leading-relaxed font-light">
+            <div class="faq-answer px-6 text-[14px] text-[#453E39] leading-[1.6] font-normal">
               Our Twinned Couple sets allow complete sizing freedom. You can select separate sizes (e.g. Women M and Men XL) on the card/modal size selectors during checkout, or request custom adjustments directly through our styling assistants via the WhatsApp Concierge widget.
             </div>
           </div>
@@ -243,32 +253,34 @@ function init() {
     <!-- 4. FLOATING LUXURY WHATSAPP CONCIERGE WIDGET -->
     <div 
       id="wa-concierge-pill" 
-      class="fixed bottom-6 right-6 z-[60] flex items-center gap-2 bg-[#105e49] hover:bg-[#075E54] text-white font-semibold text-[10px] uppercase tracking-widest px-4.5 py-3.5 rounded-full shadow-2xl transition-all hover:scale-105 cursor-pointer select-none"
+      class="fixed flex items-center gap-2.5 px-5 py-3.5 transition-all hover:scale-105 active:scale-95 cursor-pointer select-none"
+      style="bottom: 24px; right: 20px; z-index: 1000; background: #0E4431; color: #FFFFFF; box-shadow: 0 4px 18px rgba(14, 68, 49, 0.35); border-radius: 9999px; font-size: 11px; letter-spacing: 0.12em; font-weight: 600;"
     >
       <!-- Minimal WhatsApp Icon -->
-      <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+      <svg class="w-4.5 h-4.5 fill-current flex-shrink-0" viewBox="0 0 24 24">
         <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.5-5.739-1.451L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.965C16.59 2.015 14.117.99 11.5.99c-5.441 0-9.866 4.372-9.87 9.802 0 1.706.452 3.375 1.312 4.846l-.996 3.639 3.738-.971zM17.65 14.7c-.305-.152-1.804-.89-2.083-.992-.279-.101-.482-.152-.684.152-.202.304-.783.992-.96 1.193-.178.203-.356.228-.661.076-.305-.152-1.288-.475-2.453-1.514-.908-.81-1.52-1.81-1.698-2.114-.178-.305-.019-.47.133-.62.137-.136.305-.355.457-.533.152-.178.203-.304.305-.507.101-.203.05-.38-.026-.533-.076-.152-.684-1.648-.937-2.257-.247-.594-.497-.514-.684-.523-.178-.009-.38-.01-.583-.01-.203 0-.533.076-.812.38-.279.305-1.066 1.04-1.066 2.537 0 1.497 1.09 2.943 1.242 3.146.152.203 2.146 3.277 5.197 4.594.726.313 1.292.5 1.734.64.728.232 1.39.2 1.913.12.584-.088 1.804-.737 2.058-1.448.254-.71.254-1.32.178-1.448-.076-.127-.279-.203-.583-.355z"/>
       </svg>
-      <span>Concierge</span>
+      <span class="uppercase tracking-wider font-semibold">Concierge</span>
     </div>
 
     <!-- WhatsApp Mini popup Card -->
     <div 
       id="wa-concierge-card" 
-      class="wa-card-transition fixed bottom-20 right-6 z-[60] bg-white border border-[#E5E3DF] p-6 w-80 rounded-2xl shadow-2xl flex flex-col gap-4 transform scale-95 opacity-0 pointer-events-none"
+      class="wa-card-transition fixed bg-white border border-[#E6DFD5] p-6 w-80 rounded-2xl shadow-2xl flex flex-col gap-4 transform scale-95 opacity-0 pointer-events-none"
+      style="bottom: 80px; right: 20px; z-index: 1000;"
     >
       <!-- Monogram Header -->
-      <div class="flex items-center space-x-3 border-b border-[#E5E3DF] pb-3">
+      <div class="flex items-center space-x-3 border-b border-[#E6DFD5] pb-3">
         <div class="w-8 h-8 rounded-full border border-[#C5A880] flex items-center justify-center text-[#C5A880] font-serif text-[10px] font-bold">
           FP
         </div>
         <div>
-          <h4 class="font-serif text-xs tracking-wider uppercase font-semibold text-[#1A1A1A]">Atelier Assistance</h4>
-          <p class="text-[8px] text-emerald-600 uppercase tracking-widest mt-0.5 leading-none">● Online &amp; Ready</p>
+          <h4 class="font-serif text-xs tracking-wider uppercase font-semibold text-[#1F1A17]">Atelier Assistance</h4>
+          <p class="text-[8px] text-emerald-700 font-semibold uppercase tracking-widest mt-0.5 leading-none">● Online &amp; Ready</p>
         </div>
       </div>
 
-      <p class="text-[10px] text-[#5A5A5A] leading-relaxed font-light">
+      <p class="text-xs text-[#453E39] leading-relaxed font-normal">
         Welcome to the FashionPalette concierge. Select an option below to initiate a private consultation:
       </p>
 
@@ -276,30 +288,30 @@ function init() {
       <div class="flex flex-col gap-2">
         <button 
           data-wa-option="size"
-          class="w-full text-left py-2.5 px-3.5 bg-[#F9F8F6] hover:bg-emerald-50 hover:text-emerald-800 border border-[#E5E3DF] rounded-xl text-[10px] uppercase tracking-widest font-semibold transition-all focus:outline-none flex justify-between items-center"
+          class="w-full text-left py-2.5 px-3.5 bg-[#F9F8F6] hover:bg-emerald-50 hover:text-[#0E4431] border border-[#E6DFD5] rounded-xl text-[10px] uppercase tracking-widest font-semibold transition-all focus:outline-none flex justify-between items-center cursor-pointer"
         >
-          <span>Size & Fit Guidance</span>
+          <span>Size &amp; Fit Guidance</span>
           <span class="text-xs">📏</span>
         </button>
 
         <button 
           data-wa-option="track"
-          class="w-full text-left py-2.5 px-3.5 bg-[#F9F8F6] hover:bg-emerald-50 hover:text-emerald-800 border border-[#E5E3DF] rounded-xl text-[10px] uppercase tracking-widest font-semibold transition-all focus:outline-none flex justify-between items-center"
+          class="w-full text-left py-2.5 px-3.5 bg-[#F9F8F6] hover:bg-emerald-50 hover:text-[#0E4431] border border-[#E6DFD5] rounded-xl text-[10px] uppercase tracking-widest font-semibold transition-all focus:outline-none flex justify-between items-center cursor-pointer"
         >
-          <span>Order Tracking & Status</span>
+          <span>Order Tracking &amp; Status</span>
           <span class="text-xs">📦</span>
         </button>
 
         <button 
           data-wa-option="stylist"
-          class="w-full text-left py-2.5 px-3.5 bg-[#F9F8F6] hover:bg-emerald-50 hover:text-emerald-800 border border-[#E5E3DF] rounded-xl text-[10px] uppercase tracking-widest font-semibold transition-all focus:outline-none flex justify-between items-center"
+          class="w-full text-left py-2.5 px-3.5 bg-[#F9F8F6] hover:bg-emerald-50 hover:text-[#0E4431] border border-[#E6DFD5] rounded-xl text-[10px] uppercase tracking-widest font-semibold transition-all focus:outline-none flex justify-between items-center cursor-pointer"
         >
           <span>Direct Stylist Chat</span>
           <span class="text-xs">👔</span>
         </button>
       </div>
 
-      <p class="text-[8px] text-[#8A8A8A] text-center font-light uppercase tracking-wider">
+      <p class="text-[9px] text-[#8A8A8A] text-center font-normal uppercase tracking-wider">
         Pan-India Delivery in 4-7 Days
       </p>
     </div>
@@ -311,6 +323,7 @@ function init() {
     btn.addEventListener("click", () => {
       const answer = btn.nextElementSibling;
       const chevron = btn.querySelector(".faq-chevron");
+      const title = btn.querySelector(".faq-question-title");
       
       const isOpen = answer.classList.contains("open");
       
@@ -318,13 +331,16 @@ function init() {
       faqHeaderBtns.forEach(otherBtn => {
         const otherAnswer = otherBtn.nextElementSibling;
         const otherChevron = otherBtn.querySelector(".faq-chevron");
+        const otherTitle = otherBtn.querySelector(".faq-question-title");
         otherAnswer.classList.remove("open");
-        otherChevron.classList.remove("rotate");
+        if (otherChevron) otherChevron.classList.remove("rotate");
+        if (otherTitle) otherTitle.classList.remove("active");
       });
 
       if (!isOpen) {
         answer.classList.add("open");
-        chevron.classList.add("rotate");
+        if (chevron) chevron.classList.add("rotate");
+        if (title) title.classList.add("active");
       }
     });
   });

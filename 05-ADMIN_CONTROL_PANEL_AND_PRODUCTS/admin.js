@@ -16,10 +16,9 @@ import {
   deleteProductFromCloud, 
   subscribeToOrders, 
   saveOrderToCloud, 
-  updateOrderStatusInCloud, 
   deleteOrderFromCloud 
 } from '../07-STORE_SETTINGS_AND_THEME_COLORS/firebase_sync.js';
-import { openImageCropperStudio, calculatePsychologicalPricing } from './image_studio.js';
+import { openImageCropperStudio, calculatePsychologicalPricing, openImageLightbox } from './image_studio.js';
 
 // Helper local functions to read/write product catalog
 function getProducts() {
@@ -1482,9 +1481,12 @@ export function initAdmin(containerId) {
     function renderMainPreview() {
       if (uploadedMainImage) {
         mainPreviewContainer.innerHTML = `
-          <div class="relative w-24 h-32 rounded-xl overflow-hidden border-2 border-[#C5A880] mt-3 shadow-sm">
+          <div class="relative w-24 h-32 rounded-xl overflow-hidden border-2 border-[#C5A880] mt-3 shadow-sm group">
             <img src="${uploadedMainImage}" class="w-full h-full object-cover" />
-            <button type="button" id="remove-main-img-btn" class="absolute top-1 right-1 w-5 h-5 bg-black/80 hover:bg-black text-white text-[10px] rounded-full flex items-center justify-center font-bold focus:outline-none">✕</button>
+            <div class="absolute top-1 right-1 flex items-center gap-1">
+              <button type="button" id="preview-main-img-btn" class="w-5 h-5 bg-black/80 hover:bg-[#C5A880] text-white hover:text-[#181513] text-[9px] rounded-full flex items-center justify-center font-bold focus:outline-none transition-all shadow-xs" title="Preview High-Res Image">👁️</button>
+              <button type="button" id="remove-main-img-btn" class="w-5 h-5 bg-black/80 hover:bg-rose-600 text-white text-[10px] rounded-full flex items-center justify-center font-bold focus:outline-none transition-all shadow-xs" title="Remove Image">✕</button>
+            </div>
             <span class="absolute bottom-0 inset-x-0 bg-[#1A1A1A]/80 text-[7px] text-amber-200 text-center font-bold uppercase py-0.5 tracking-wider">Enhanced</span>
           </div>
         `;
@@ -1495,6 +1497,14 @@ export function initAdmin(containerId) {
           removeBtn.addEventListener('click', () => {
             uploadedMainImage = "";
             renderMainPreview();
+          });
+        }
+
+        const previewBtn = document.getElementById('preview-main-img-btn');
+        if (previewBtn) {
+          previewBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openImageLightbox(uploadedMainImage, "Main Product Image &bull; Storefront Preview");
           });
         }
       } else {
@@ -1579,18 +1589,30 @@ export function initAdmin(containerId) {
     function renderGalleryPreviews() {
       if (uploadedGalleryImages.length > 0) {
         galleryPreviewContainer.innerHTML = uploadedGalleryImages.map((img, index) => `
-          <div class="relative w-full aspect-[3/4] rounded-xl overflow-hidden border border-[#E5E3DF] mt-2 shadow-xs">
+          <div class="relative w-full aspect-[3/4] rounded-xl overflow-hidden border border-[#E5E3DF] mt-2 shadow-xs group">
             <img src="${img}" class="w-full h-full object-cover" />
-            <button type="button" data-index="${index}" class="remove-gallery-img-btn absolute top-1 right-1 w-5 h-5 bg-black/70 hover:bg-black text-white text-[10px] rounded-full flex items-center justify-center font-bold focus:outline-none">✕</button>
+            <div class="absolute top-1 right-1 flex items-center gap-1">
+              <button type="button" data-index="${index}" class="preview-gallery-img-btn w-5 h-5 bg-black/80 hover:bg-[#C5A880] text-white hover:text-[#181513] text-[9px] rounded-full flex items-center justify-center font-bold focus:outline-none transition-all shadow-xs" title="Preview High-Res Image">👁️</button>
+              <button type="button" data-index="${index}" class="remove-gallery-img-btn w-5 h-5 bg-black/80 hover:bg-rose-600 text-white text-[10px] rounded-full flex items-center justify-center font-bold focus:outline-none transition-all shadow-xs" title="Remove Image">✕</button>
+            </div>
           </div>
         `).join('');
         galleryPreviewContainer.classList.remove('hidden');
 
         galleryPreviewContainer.querySelectorAll('.remove-gallery-img-btn').forEach(btn => {
-          btn.addEventListener('click', () => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
             const idx = parseInt(btn.getAttribute('data-index'));
             uploadedGalleryImages.splice(idx, 1);
             renderGalleryPreviews();
+          });
+        });
+
+        galleryPreviewContainer.querySelectorAll('.preview-gallery-img-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const idx = parseInt(btn.getAttribute('data-index'));
+            openImageLightbox(uploadedGalleryImages[idx], `Gallery Image #${idx + 1} &bull; Storefront Preview`);
           });
         });
       } else {
