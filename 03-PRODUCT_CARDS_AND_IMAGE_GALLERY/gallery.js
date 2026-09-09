@@ -12,6 +12,7 @@ import {
   updateProductsSortOrderInCloud,
   uploadToImgBB 
 } from '../07-STORE_SETTINGS_AND_THEME_COLORS/firebase_sync.js';
+import { openImageCropperStudio, calculatePsychologicalPricing } from '../05-ADMIN_CONTROL_PANEL_AND_PRODUCTS/image_studio.js';
 
 // Curated dropshipping apparel catalog for Ganesh Chaturthi and Festive 2026
 const DEFAULT_PRODUCTS = [
@@ -867,15 +868,53 @@ export function showQuickEditModal(product, onSaveCallback) {
           </button>
         </div>
 
-        <!-- Pricing Tiers -->
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Selling Price (₹)</label>
-            <input type="number" id="qe-price" required value="${product.price}" min="0" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+        <!-- ============================================================== -->
+        <!-- AUTOMATED PRICING ENGINE WITH RTO & DELIVERY BUFFER -->
+        <!-- ============================================================== -->
+        <div class="p-4 bg-[#F9F8F6] border border-[#E5E3DF] rounded-2xl space-y-3">
+          <div class="flex items-center justify-between">
+            <label class="block text-[9px] uppercase tracking-wider text-[#1A1A1A] font-bold">Automated Pricing Engine</label>
+            <span class="text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+              RTO &amp; Buffer Shield
+            </span>
           </div>
-          <div>
-            <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Original MRP (₹)</label>
-            <input type="number" id="qe-mrp" required value="${product.originalPrice}" min="0" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+
+          <div class="grid grid-cols-3 gap-2.5">
+            <div>
+              <label class="block text-[8px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">Supplier Cost (₹)</label>
+              <input type="number" id="qe-supplier-cost" placeholder="e.g. 273" value="${product.supplierCost || ''}" min="0" class="w-full bg-white border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880] font-bold text-[#1A1A1A]" />
+            </div>
+            <div>
+              <label class="block text-[8px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">Target Profit (₹)</label>
+              <input type="number" id="qe-target-profit" value="${product.targetProfit !== undefined ? product.targetProfit : 200}" min="0" class="w-full bg-white border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880] font-bold text-[#1A1A1A]" />
+            </div>
+            <div>
+              <label class="block text-[8px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">RTO Buffer (₹)</label>
+              <input type="number" id="qe-rto-buffer" value="${product.rtoBuffer !== undefined ? product.rtoBuffer : 100}" min="0" class="w-full bg-white border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880] font-bold text-[#1A1A1A]" />
+            </div>
+          </div>
+
+          <!-- Customer-Facing Selling Price & Strike-through MRP -->
+          <div class="grid grid-cols-2 gap-3 pt-1">
+            <div>
+              <label class="block text-[8px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">Customer Selling Price (₹)</label>
+              <input type="number" id="qe-price" required value="${product.price}" min="0" class="w-full min-h-[44px] bg-white border-2 border-[#1A1A1A] px-3 py-2.5 text-sm font-bold rounded-xl focus:outline-none focus:border-[#C5A880] text-[#1A1A1A]" />
+            </div>
+            <div>
+              <label class="block text-[8px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">Strike-through MRP (₹)</label>
+              <input type="number" id="qe-mrp" required value="${product.originalPrice}" min="0" class="w-full min-h-[44px] bg-white border border-[#E5E3DF] px-3 py-2.5 text-sm font-semibold rounded-xl focus:outline-none focus:border-[#C5A880] text-[#8A8A8A]" />
+            </div>
+          </div>
+
+          <!-- Live Auto Net Margin Display -->
+          <div class="p-2.5 bg-white border border-emerald-200/80 rounded-xl flex items-center justify-between text-[9px]">
+            <div class="flex items-center gap-1.5 text-emerald-800 font-bold">
+              <span>🛡️</span>
+              <span id="qe-pricing-net-display">Net Profit: ₹${product.targetProfit || 200} (Protected from RTO)</span>
+            </div>
+            <span id="qe-pricing-disc-display" class="text-stone-500 font-semibold uppercase">
+              ~${Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) || 50}% OFF MRP
+            </span>
           </div>
         </div>
 
@@ -900,7 +939,7 @@ export function showQuickEditModal(product, onSaveCallback) {
         <div class="space-y-2.5 border-t border-[#E5E3DF]/60 pt-3">
           <div class="flex items-center justify-between">
             <label class="block text-[9px] uppercase tracking-wider text-[#1A1A1A] font-bold">Section A &bull; Primary Catalog Cover Image</label>
-            <span class="text-[8px] text-[#8A8A8A] uppercase font-semibold">Primary Cover Slot</span>
+            <span class="text-[8px] text-[#C5A880] uppercase font-bold">✂️ Interactive Studio</span>
           </div>
           
           <div class="flex items-start gap-3 bg-[#F9F8F6] p-3 rounded-2xl border border-[#E5E3DF]">
@@ -912,14 +951,14 @@ export function showQuickEditModal(product, onSaveCallback) {
             <div class="flex-grow space-y-2">
               <div class="flex gap-2">
                 <button type="button" id="qe-img-mode-keep" class="flex-1 py-1.5 px-2 text-[9px] font-semibold uppercase tracking-wider border rounded-lg transition-all bg-[#1A1A1A] text-white border-[#1A1A1A]">Keep Photo</button>
-                <button type="button" id="qe-img-mode-upload" class="flex-1 py-1.5 px-2 text-[9px] font-semibold uppercase tracking-wider border rounded-lg transition-all bg-white text-[#5A5A5A] border-[#E5E3DF]">Upload (ImgBB)</button>
+                <button type="button" id="qe-img-mode-upload" class="flex-1 py-1.5 px-2 text-[9px] font-semibold uppercase tracking-wider border rounded-lg transition-all bg-white text-[#5A5A5A] border-[#E5E3DF]">Crop &amp; Upload</button>
                 <button type="button" id="qe-img-mode-url" class="flex-1 py-1.5 px-2 text-[9px] font-semibold uppercase tracking-wider border rounded-lg transition-all bg-white text-[#5A5A5A] border-[#E5E3DF]">URL Link</button>
               </div>
 
               <div id="qe-upload-zone" class="hidden">
                 <div class="border-2 border-dashed border-[#C5A880]/50 rounded-xl p-3 text-center cursor-pointer bg-white hover:bg-[#C5A880]/5 relative min-h-[60px] flex flex-col items-center justify-center" id="qe-dropzone">
                   <input type="file" id="qe-file-input" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                  <p class="text-[9px] font-bold text-[#1A1A1A] uppercase tracking-wider pointer-events-none">Click or Drop new photo to upload to ImgBB</p>
+                  <p class="text-[9px] font-bold text-[#1A1A1A] uppercase tracking-wider pointer-events-none">Click or Drop new photo to Crop &amp; Auto-Enhance</p>
                 </div>
               </div>
 
@@ -946,8 +985,8 @@ export function showQuickEditModal(product, onSaveCallback) {
               <svg class="w-6 h-6 text-[#C5A880] mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p class="text-[9px] font-bold text-[#1A1A1A] uppercase tracking-wider">Drag & Drop or Click to Add Multiple Gallery Photos</p>
-              <p class="text-[8px] text-[#8A8A8A]">Select multiple files to upload via ImgBB CDN</p>
+              <p class="text-[9px] font-bold text-[#1A1A1A] uppercase tracking-wider">Drag & Drop or Click to Crop &amp; Add Gallery Photos</p>
+              <p class="text-[8px] text-[#8A8A8A]">Select photos to crop &amp; enhance via Studio</p>
             </div>
           </div>
 
@@ -1026,6 +1065,44 @@ export function showQuickEditModal(product, onSaveCallback) {
   modal.addEventListener('click', (e) => {
     if (e.target === modal) closeModal();
   });
+
+  // ==============================================================
+  // PRICING ENGINE AUTO-CALCULATION IN QUICK EDIT MODAL
+  // ==============================================================
+  function recalculateModalPricing() {
+    const costEl = modal.querySelector('#qe-supplier-cost');
+    const profitEl = modal.querySelector('#qe-target-profit');
+    const bufferEl = modal.querySelector('#qe-rto-buffer');
+    const priceEl = modal.querySelector('#qe-price');
+    const mrpEl = modal.querySelector('#qe-mrp');
+    const netEl = modal.querySelector('#qe-pricing-net-display');
+    const discEl = modal.querySelector('#qe-pricing-disc-display');
+
+    if (!costEl || !priceEl || !mrpEl) return;
+
+    const cost = Number(costEl.value) || 0;
+    const profit = Number(profitEl?.value) >= 0 ? Number(profitEl.value) : 200;
+    const buffer = Number(bufferEl?.value) >= 0 ? Number(bufferEl.value) : 100;
+
+    if (cost > 0) {
+      const pricing = calculatePsychologicalPricing(cost, profit, buffer);
+      priceEl.value = pricing.sellingPrice;
+      mrpEl.value = pricing.mrp;
+      if (netEl) netEl.innerText = `Net Profit: ₹${pricing.netProfit} (Protected from RTO)`;
+      if (discEl && pricing.mrp > 0) {
+        const discountPct = Math.round(((pricing.mrp - pricing.sellingPrice) / pricing.mrp) * 100);
+        discEl.innerText = `~${discountPct}% OFF MRP`;
+      }
+    }
+  }
+
+  const qeCostInput = modal.querySelector('#qe-supplier-cost');
+  const qeProfitInput = modal.querySelector('#qe-target-profit');
+  const qeBufferInput = modal.querySelector('#qe-rto-buffer');
+
+  if (qeCostInput) qeCostInput.addEventListener('input', recalculateModalPricing);
+  if (qeProfitInput) qeProfitInput.addEventListener('input', recalculateModalPricing);
+  if (qeBufferInput) qeBufferInput.addEventListener('input', recalculateModalPricing);
 
   // Featured Toggle in modal
   const featuredToggleBtn = modal.querySelector('#qe-featured-toggle-btn');
@@ -1159,16 +1236,15 @@ export function showQuickEditModal(product, onSaveCallback) {
 
   async function handleModalMainImageFile(file) {
     if (!file) return;
-    if (dropzone) dropzone.innerHTML = `<div class="text-[9px] font-bold text-[#C5A880] uppercase animate-pulse flex items-center gap-1.5 justify-center py-2"><div class="w-3.5 h-3.5 border-2 border-[#C5A880] border-t-transparent rounded-full animate-spin"></div> Uploading to ImgBB...</div>`;
     try {
-      const url = await uploadToImgBB(file);
-      uploadedModalMainImage = url;
-      mainImageChoice = url;
-      if (previewImg) previewImg.src = url;
-      if (dropzone) dropzone.innerHTML = `<p class="text-[9px] text-emerald-600 font-bold uppercase py-2">✓ Image Uploaded Successfully!</p>`;
+      const cdnUrl = await openImageCropperStudio(file);
+      if (cdnUrl) {
+        uploadedModalMainImage = cdnUrl;
+        mainImageChoice = cdnUrl;
+        if (previewImg) previewImg.src = cdnUrl;
+      }
     } catch (err) {
-      alert("⚠️ ImgBB Upload Failed: " + (err.message || "Network Error"));
-      if (dropzone) dropzone.innerHTML = `<input type="file" id="qe-file-input" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" /><p class="text-[9px] font-bold text-[#1A1A1A] uppercase tracking-wider pointer-events-none">Click or Drop new photo to upload</p>`;
+      console.log("Quick Edit modal crop cancelled or error:", err);
     }
   }
 
@@ -1271,41 +1347,15 @@ export function showQuickEditModal(product, onSaveCallback) {
 
   async function handleGalleryFilesUpload(files) {
     if (!files || files.length === 0) return;
-    if (galleryDropzone) {
-      galleryDropzone.innerHTML = `
-        <div class="space-y-1.5 pointer-events-none py-2 flex flex-col items-center justify-center">
-          <div class="w-5 h-5 border-2 border-[#C5A880] border-t-transparent rounded-full animate-spin"></div>
-          <p class="text-[9px] font-bold text-[#C5A880] uppercase tracking-wider">Uploading ${files.length} Photo(s) to ImgBB...</p>
-        </div>
-      `;
-    }
-
-    try {
-      for (let i = 0; i < files.length; i++) {
-        const uploadedUrl = await uploadToImgBB(files[i]);
-        galleryImages.push(uploadedUrl);
-      }
-      renderGalleryThumbnailStrip();
-    } catch (err) {
-      alert("⚠️ ImgBB Upload Error: " + (err.message || "Failed to upload files"));
-    } finally {
-      if (galleryDropzone) {
-        galleryDropzone.innerHTML = `
-          <input type="file" id="qe-gallery-file-input" accept="image/*" multiple class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-          <div class="space-y-1 pointer-events-none">
-            <svg class="w-6 h-6 text-[#C5A880] mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p class="text-[9px] font-bold text-[#1A1A1A] uppercase tracking-wider">Drag & Drop or Click to Add Multiple Gallery Photos</p>
-            <p class="text-[8px] text-[#8A8A8A]">Select multiple files to upload via ImgBB CDN</p>
-          </div>
-        `;
-        const reInput = galleryDropzone.querySelector('#qe-gallery-file-input');
-        if (reInput) {
-          reInput.addEventListener('change', (e) => {
-            if (e.target.files) handleGalleryFilesUpload(e.target.files);
-          });
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const uploadedUrl = await openImageCropperStudio(files[i]);
+        if (uploadedUrl) {
+          galleryImages.push(uploadedUrl);
+          renderGalleryThumbnailStrip();
         }
+      } catch (err) {
+        console.log(`Gallery image ${i} crop cancelled or error:`, err);
       }
     }
   }
@@ -1344,6 +1394,9 @@ export function showQuickEditModal(product, onSaveCallback) {
       const title = modal.querySelector('#qe-title').value.trim();
       const category = modal.querySelector('#qe-category').value;
       const badge = modal.querySelector('#qe-badge').value.trim();
+      const supplierCost = parseInt(modal.querySelector('#qe-supplier-cost').value) || 0;
+      const targetProfit = parseInt(modal.querySelector('#qe-target-profit').value) || 200;
+      const rtoBuffer = parseInt(modal.querySelector('#qe-rto-buffer').value) || 100;
       const price = parseInt(modal.querySelector('#qe-price').value);
       const originalPrice = parseInt(modal.querySelector('#qe-mrp').value);
       const description = modal.querySelector('#qe-desc').value.trim();
@@ -1369,6 +1422,9 @@ export function showQuickEditModal(product, onSaveCallback) {
         ...product,
         title,
         category,
+        supplierCost,
+        targetProfit,
+        rtoBuffer,
         price,
         originalPrice,
         discountPercentage,

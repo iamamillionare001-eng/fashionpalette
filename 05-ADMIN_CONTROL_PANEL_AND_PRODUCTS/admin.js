@@ -19,6 +19,7 @@ import {
   updateOrderStatusInCloud, 
   deleteOrderFromCloud 
 } from '../07-STORE_SETTINGS_AND_THEME_COLORS/firebase_sync.js';
+import { openImageCropperStudio, calculatePsychologicalPricing } from './image_studio.js';
 
 // Helper local functions to read/write product catalog
 function getProducts() {
@@ -643,8 +644,81 @@ export function initAdmin(containerId) {
               <svg class="w-4.5 h-4.5 text-[#C5A880]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Add New Product
+              Add New Product &bull; Dropship Automation
             </h3>
+          </div>
+
+          <!-- ============================================================== -->
+          <!-- 1. SMART PRODUCT INGESTION INTERFACE (TOP SEGMENT) -->
+          <!-- ============================================================== -->
+          <div class="bg-gradient-to-r from-amber-500/10 via-[#F9F8F6] to-stone-50 border border-[#C5A880]/50 p-4 rounded-2xl space-y-3 shadow-xs">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-sm">✨</span>
+                <h4 class="text-xs font-serif uppercase tracking-wider text-[#1A1A1A] font-bold">Smart Product Ingestion</h4>
+              </div>
+              <span class="text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full bg-[#C5A880]/20 text-amber-900 border border-[#C5A880]/40">
+                Dropship Auto-Parser
+              </span>
+            </div>
+            
+            <p class="text-[10px] text-[#5A5A5A] leading-relaxed">
+              Paste supplier URLs (Meesho / GlowRoad / IndiaMART). Auto-extracts tokens, tags, sizes, pricing formulas, and formats a luxury editorial description.
+            </p>
+
+            <!-- Ingestion Type Selector -->
+            <div class="flex items-center gap-4 pt-1">
+              <label class="flex items-center gap-1.5 text-xs font-semibold text-[#1A1A1A] cursor-pointer select-none">
+                <input type="radio" name="ingest-type" id="ingest-type-single" value="single" checked class="accent-[#1A1A1A] cursor-pointer" />
+                <span>Individual Item</span>
+              </label>
+              <label class="flex items-center gap-1.5 text-xs font-semibold text-[#1A1A1A] cursor-pointer select-none">
+                <input type="radio" name="ingest-type" id="ingest-type-twin" value="twin" class="accent-[#1A1A1A] cursor-pointer" />
+                <span>Twin Combo</span>
+              </label>
+            </div>
+
+            <!-- Dynamic Ingestion Inputs -->
+            <div id="ingest-inputs-container" class="space-y-2 pt-1">
+              <!-- Individual item inputs (2 links: Top & Bottom) -->
+              <div id="ingest-single-links" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[8px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">Top Link</label>
+                  <input type="url" id="ingest-top-link" placeholder="https://meesho.com/top-kurta/..." class="w-full bg-white border border-[#E5E3DF] px-3 py-2 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+                </div>
+                <div>
+                  <label class="block text-[8px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">Bottom Link</label>
+                  <input type="url" id="ingest-bottom-link" placeholder="https://meesho.com/bottom-pant/..." class="w-full bg-white border border-[#E5E3DF] px-3 py-2 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+                </div>
+              </div>
+
+              <!-- Twin combo inputs (4 links) -->
+              <div id="ingest-twin-links" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[8px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">Male Top Link</label>
+                  <input type="url" id="ingest-male-top" placeholder="https://meesho.com/mens-kurta/..." class="w-full bg-white border border-[#E5E3DF] px-3 py-2 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+                </div>
+                <div>
+                  <label class="block text-[8px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">Male Bottom Link</label>
+                  <input type="url" id="ingest-male-bottom" placeholder="https://meesho.com/mens-pyjama/..." class="w-full bg-white border border-[#E5E3DF] px-3 py-2 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+                </div>
+                <div>
+                  <label class="block text-[8px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">Female Top Link</label>
+                  <input type="url" id="ingest-female-top" placeholder="https://meesho.com/womens-saree/..." class="w-full bg-white border border-[#E5E3DF] px-3 py-2 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+                </div>
+                <div>
+                  <label class="block text-[8px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">Female Bottom Link</label>
+                  <input type="url" id="ingest-female-bottom" placeholder="https://meesho.com/womens-skirt/..." class="w-full bg-white border border-[#E5E3DF] px-3 py-2 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-1">
+              <div id="ingest-status-msg" class="text-[9px] text-emerald-700 font-medium"></div>
+              <button type="button" id="ingest-details-btn" class="px-4 py-2 bg-[#1A1A1A] hover:bg-[#C5A880] text-white hover:text-[#1A1A1A] text-[10px] uppercase tracking-widest font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 focus:outline-none">
+                <span>⚡ Ingest Details</span>
+              </button>
+            </div>
           </div>
 
           <form id="add-product-form" class="space-y-5" onsubmit="event.preventDefault();">
@@ -671,14 +745,51 @@ export function initAdmin(containerId) {
               </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Selling Price (₹)</label>
-                <input type="number" id="prod-price" required placeholder="2499" min="0" class="w-full min-h-[48px] bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-3 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+            <!-- ============================================================== -->
+            <!-- 2. AUTOMATED PRICING ENGINE WITH RTO & DELIVERY BUFFER -->
+            <!-- ============================================================== -->
+            <div class="p-4 bg-[#F9F8F6] border border-[#E5E3DF] rounded-2xl space-y-3">
+              <div class="flex items-center justify-between">
+                <label class="block text-[9px] uppercase tracking-wider text-[#1A1A1A] font-bold">Automated Pricing Engine</label>
+                <span class="text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  RTO &amp; Buffer Shield
+                </span>
               </div>
-              <div>
-                <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Original Price / MRP (₹)</label>
-                <input type="number" id="prod-mrp" required placeholder="4999" min="0" class="w-full min-h-[48px] bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-3 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+
+              <div class="grid grid-cols-3 gap-2.5">
+                <div>
+                  <label class="block text-[8px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">Supplier Cost (₹)</label>
+                  <input type="number" id="prod-supplier-cost" placeholder="e.g. 273" min="0" class="w-full bg-white border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880] font-bold text-[#1A1A1A]" />
+                </div>
+                <div>
+                  <label class="block text-[8px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">Target Profit (₹)</label>
+                  <input type="number" id="prod-target-profit" value="200" min="0" class="w-full bg-white border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880] font-bold text-[#1A1A1A]" />
+                </div>
+                <div>
+                  <label class="block text-[8px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">RTO Buffer (₹)</label>
+                  <input type="number" id="prod-rto-buffer" value="100" min="0" class="w-full bg-white border border-[#E5E3DF] px-3 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880] font-bold text-[#1A1A1A]" />
+                </div>
+              </div>
+
+              <!-- Customer-Facing Selling Price & Strike-through MRP -->
+              <div class="grid grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label class="block text-[8px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">Customer Selling Price (₹)</label>
+                  <input type="number" id="prod-price" required placeholder="599" min="0" class="w-full min-h-[44px] bg-white border-2 border-[#1A1A1A] px-3 py-2.5 text-sm font-bold rounded-xl focus:outline-none focus:border-[#C5A880] text-[#1A1A1A]" />
+                </div>
+                <div>
+                  <label class="block text-[8px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">Strike-through MRP (₹)</label>
+                  <input type="number" id="prod-mrp" required placeholder="1198" min="0" class="w-full min-h-[44px] bg-white border border-[#E5E3DF] px-3 py-2.5 text-sm font-semibold rounded-xl focus:outline-none focus:border-[#C5A880] text-[#8A8A8A]" />
+                </div>
+              </div>
+
+              <!-- Live Auto Net Margin Display -->
+              <div id="pricing-formula-feedback" class="p-2.5 bg-white border border-emerald-200/80 rounded-xl flex items-center justify-between text-[9px]">
+                <div class="flex items-center gap-1.5 text-emerald-800 font-bold">
+                  <span>🛡️</span>
+                  <span id="pricing-net-profit-display">Net Profit: ₹200 (Protected from RTO)</span>
+                </div>
+                <span id="pricing-discount-display" class="text-stone-500 font-semibold uppercase">~50% OFF MRP</span>
               </div>
             </div>
 
@@ -709,11 +820,16 @@ export function initAdmin(containerId) {
 
             <!-- Main Product Image -->
             <div class="space-y-2 border-t border-[#E5E3DF]/50 pt-3">
-              <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold">Main Product Image</label>
+              <div class="flex items-center justify-between">
+                <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold">Main Product Image</label>
+                <span class="text-[8px] font-bold text-[#C5A880] uppercase tracking-wider flex items-center gap-1">
+                  <span>✂️ Crop &amp; Enhance Studio</span>
+                </span>
+              </div>
               <div class="flex gap-2 pb-1.5">
                 <button type="button" id="main-img-mode-upload" class="flex-1 px-3 py-2 text-[9px] font-semibold uppercase tracking-widest border transition-all rounded-xl focus:outline-none min-h-[40px] ${
                   mainImageMode === 'upload' ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-white text-[#5A5A5A] border-[#E5E3DF]'
-                }">Upload File</button>
+                }">Upload File (Cropper)</button>
                 <button type="button" id="main-img-mode-url" class="flex-1 px-3 py-2 text-[9px] font-semibold uppercase tracking-widest border transition-all rounded-xl focus:outline-none min-h-[40px] ${
                   mainImageMode === 'url' ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-white text-[#5A5A5A] border-[#E5E3DF]'
                 }">Image URL Link</button>
@@ -727,8 +843,8 @@ export function initAdmin(containerId) {
                     <svg class="w-7 h-7 text-[#C5A880] mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <p class="text-[9px] font-semibold uppercase tracking-wider text-[#1A1A1A]">Drag & Drop or Click to Upload</p>
-                    <p class="text-[8px] text-[#8A8A8A]">Device camera/photo library supported</p>
+                    <p class="text-[9px] font-semibold uppercase tracking-wider text-[#1A1A1A]">Drag &amp; Drop to Crop &amp; Auto-Enhance</p>
+                    <p class="text-[8px] text-[#8A8A8A]">AVIF, WebP, PNG, JPG &bull; Touch / Mouse Presets</p>
                   </div>
                 </div>
                 <!-- Thumbnail Preview -->
@@ -743,7 +859,7 @@ export function initAdmin(containerId) {
 
             <!-- Gallery Images -->
             <div class="space-y-2 border-t border-[#E5E3DF]/50 pt-3">
-              <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold">Gallery Images</label>
+              <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold">Gallery Images (Crop &amp; Auto-Enhance)</label>
               <div class="flex gap-2 pb-1.5">
                 <button type="button" id="gallery-img-mode-upload" class="flex-1 px-3 py-2 text-[9px] font-semibold uppercase tracking-widest border transition-all rounded-xl focus:outline-none min-h-[40px] ${
                   galleryImageMode === 'upload' ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-white text-[#5A5A5A] border-[#E5E3DF]'
@@ -761,8 +877,8 @@ export function initAdmin(containerId) {
                     <svg class="w-7 h-7 text-[#C5A880] mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <p class="text-[9px] font-semibold uppercase tracking-wider text-[#1A1A1A]">Drag & Drop or Click to Upload Multiple</p>
-                    <p class="text-[8px] text-[#8A8A8A]">Camera role / multiple files supported</p>
+                    <p class="text-[9px] font-semibold uppercase tracking-wider text-[#1A1A1A]">Select or Drop Multiple Photos</p>
+                    <p class="text-[8px] text-[#8A8A8A]">Interactive Crop &amp; Enhance Studio for each photo</p>
                   </div>
                 </div>
                 <!-- Thumbnails Container -->
@@ -776,12 +892,12 @@ export function initAdmin(containerId) {
             </div>
 
             <div class="border-t border-[#E5E3DF]/50 pt-3">
-              <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Product Description</label>
+              <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Product Description (Luxury Editorial Format)</label>
               <textarea id="prod-desc" required placeholder="Detailed description of product fit and drape..." rows="3" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-3 text-xs rounded-xl focus:outline-none focus:border-[#C5A880] resize-none"></textarea>
             </div>
 
             <div>
-              <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Fabric & Composition (Optional)</label>
+              <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Fabric &amp; Composition (Optional)</label>
               <input type="text" id="prod-fabric" placeholder="e.g. 100% Pure Georgette Silk. Dry clean only." class="w-full min-h-[48px] bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-3 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
             </div>
 
@@ -800,9 +916,12 @@ export function initAdmin(containerId) {
         <!-- Right: Active Products Inventory (col-span-7) -->
         <div class="lg:col-span-7 bg-white border border-[#E5E3DF] p-6 rounded-2xl shadow-sm overflow-hidden space-y-4">
           <div class="flex items-center justify-between border-b border-[#E5E3DF] pb-3">
-            <h3 class="text-sm uppercase tracking-wider text-[#1A1A1A] font-bold">
-              Product Inventory (${products.length} Total &bull; ${filteredProducts.length} Displayed)
-            </h3>
+            <div>
+              <h3 class="text-sm uppercase tracking-wider text-[#1A1A1A] font-bold">
+                Product Inventory (${products.length} Total &bull; ${filteredProducts.length} Displayed)
+              </h3>
+              <p class="text-[9px] text-[#C5A880] uppercase tracking-wider mt-0.5 font-semibold">1-Click Supplier Cost &amp; Smart Pricing Synchronizer</p>
+            </div>
           </div>
 
           <!-- Category Filter Chips -->
@@ -841,10 +960,11 @@ export function initAdmin(containerId) {
             <table class="min-w-full divide-y divide-[#E5E3DF]">
               <thead>
                 <tr class="text-[9px] uppercase tracking-widest font-semibold text-[#8A8A8A] text-left">
-                  <th scope="col" class="pb-3 w-14">Item</th>
+                  <th scope="col" class="pb-3 w-12">Item</th>
                   <th scope="col" class="pb-3 pl-3">Details</th>
                   <th scope="col" class="pb-3">Category</th>
-                  <th scope="col" class="pb-3">Price</th>
+                  <th scope="col" class="pb-3">Supplier Cost</th>
+                  <th scope="col" class="pb-3">Selling Price</th>
                   <th scope="col" class="pb-3">Featured ⭐</th>
                   <th scope="col" class="pb-3">COD</th>
                   <th scope="col" class="pb-3">Stock</th>
@@ -854,7 +974,7 @@ export function initAdmin(containerId) {
               <tbody class="divide-y divide-[#E5E3DF] text-xs">
                 ${filteredProducts.length === 0 ? `
                   <tr>
-                    <td colspan="8" class="py-8 text-center text-xs text-[#8A8A8A]">
+                    <td colspan="9" class="py-8 text-center text-xs text-[#8A8A8A]">
                       No products found matching category "${inventoryCategory}" or search query "${inventorySearch}".
                     </td>
                   </tr>
@@ -870,7 +990,7 @@ export function initAdmin(containerId) {
                       </td>
                       
                       <!-- Title & ID -->
-                      <td class="py-3.5 pl-3 max-w-[140px]">
+                      <td class="py-3.5 pl-3 max-w-[130px]">
                         <p class="font-medium text-[#1A1A1A] truncate">${product.title}</p>
                         <p class="text-[9px] text-[#8A8A8A] font-mono mt-0.5">${product.id}</p>
                       </td>
@@ -880,10 +1000,37 @@ export function initAdmin(containerId) {
                         ${product.category}
                       </td>
 
-                      <!-- Price/MRP -->
+                      <!-- Quick-Editable Supplier Cost Input Cell -->
+                      <td class="py-3.5">
+                        <div class="flex items-center gap-1">
+                          <span class="text-[9px] text-[#8A8A8A] font-bold">₹</span>
+                          <input 
+                            type="number" 
+                            class="inv-supplier-cost-input w-16 px-1.5 py-1 text-xs font-bold bg-[#F9F8F6] border border-[#E5E3DF] focus:border-[#C5A880] rounded-lg text-[#1A1A1A]" 
+                            data-prod-id="${product.id}" 
+                            value="${product.supplierCost || ''}" 
+                            placeholder="Cost" 
+                            min="0"
+                            title="Modifying this auto-calculates Selling Price & updates Cloud in 1 click"
+                          />
+                          <button 
+                            type="button" 
+                            class="inv-calc-price-btn px-2 py-1 bg-[#1A1A1A] hover:bg-[#C5A880] text-white hover:text-[#1A1A1A] text-[8px] font-bold uppercase rounded-lg transition-all" 
+                            data-prod-id="${product.id}" 
+                            title="1-Click Calculate & Save"
+                          >
+                            ⚡
+                          </button>
+                        </div>
+                      </td>
+
+                      <!-- Customer Selling Price / MRP -->
                       <td class="py-3.5 font-semibold text-[#1A1A1A]">
                         ₹${product.price}
                         <p class="text-[9px] text-[#8A8A8A] line-through font-normal">₹${product.originalPrice}</p>
+                        ${product.supplierCost ? `
+                          <p class="text-[8px] text-emerald-700 font-bold mt-0.5">Net: ₹${product.targetProfit || 200}</p>
+                        ` : ''}
                       </td>
 
                       <!-- Featured ⭐ 1-Tap Toggle -->
@@ -965,70 +1112,88 @@ export function initAdmin(containerId) {
             ` : filteredProducts.map(product => {
               const firstImg = product.images && product.images.length > 0 ? product.images[0] : (product.image || "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=80&q=80");
               return `
-                <div class="bg-[#F9F8F6] border border-[#E5E3DF] p-4 rounded-2xl flex items-start gap-4 shadow-xs">
-                  <!-- Thumbnail -->
-                  <div class="w-16 h-22 rounded-xl overflow-hidden border border-[#E5E3DF] bg-stone-50 flex-shrink-0">
-                    <img src="${firstImg}" class="w-full h-full object-cover" />
-                  </div>
+                <div class="bg-[#F9F8F6] border border-[#E5E3DF] p-4 rounded-2xl space-y-3 shadow-xs">
+                  <div class="flex items-start gap-3">
+                    <!-- Thumbnail -->
+                    <div class="w-16 h-22 rounded-xl overflow-hidden border border-[#E5E3DF] bg-stone-50 flex-shrink-0">
+                      <img src="${firstImg}" class="w-full h-full object-cover" />
+                    </div>
 
-                  <!-- Details & Actions -->
-                  <div class="flex-grow space-y-2">
-                    <div>
+                    <!-- Details -->
+                    <div class="flex-grow space-y-1">
                       <p class="font-medium text-[#1A1A1A] text-xs line-clamp-1">${product.title}</p>
-                      <div class="flex items-center justify-between mt-0.5 text-[10px] text-[#5A5A5A]">
-                        <div class="flex items-center gap-1.5">
-                          <span class="uppercase tracking-widest font-semibold">${product.category}</span>
-                          <span class="text-[8px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full ${
-                            product.cod_available === true ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-stone-100 text-stone-500 border border-stone-200'
-                          }">
-                            ${product.cod_available === true ? 'COD' : 'Prepaid Only'}
-                          </span>
-                        </div>
+                      <div class="flex items-center justify-between text-[10px] text-[#5A5A5A]">
+                        <span class="uppercase tracking-widest font-semibold">${product.category}</span>
                         <span class="font-mono text-[8px]">${product.id}</span>
                       </div>
-                      <div class="flex items-baseline gap-2 mt-0.5">
+                      <div class="flex items-baseline gap-2 pt-0.5">
                         <span class="font-semibold text-xs text-[#1A1A1A]">₹${product.price}</span>
                         <span class="text-[9px] text-[#8A8A8A] line-through font-normal">₹${product.originalPrice}</span>
                       </div>
+                      ${product.supplierCost ? `
+                        <p class="text-[9px] text-emerald-700 font-bold">Cost: ₹${product.supplierCost} &bull; Net: ₹${product.targetProfit || 200}</p>
+                      ` : ''}
                     </div>
+                  </div>
 
-                    <!-- 1-Tap Featured Button Badge -->
+                  <!-- Quick-Editable Supplier Cost Row (Mobile) -->
+                  <div class="flex items-center justify-between bg-white p-2.5 rounded-xl border border-[#E5E3DF] gap-2">
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-[9px] uppercase font-bold text-[#5A5A5A]">Cost: ₹</span>
+                      <input 
+                        type="number" 
+                        class="inv-supplier-cost-input w-20 px-2 py-1 text-xs font-bold bg-[#F9F8F6] border border-[#E5E3DF] rounded-lg text-[#1A1A1A]" 
+                        data-prod-id="${product.id}" 
+                        value="${product.supplierCost || ''}" 
+                        placeholder="Cost" 
+                        min="0" 
+                      />
+                    </div>
                     <button 
-                      data-featured-id="${product.id}"
-                      class="featured-toggle-btn w-full py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold border transition-all flex items-center justify-center gap-1 ${
-                        product.featured 
-                          ? 'bg-amber-50 text-amber-900 border-amber-300' 
-                          : 'bg-white text-stone-500 border-stone-200'
+                      type="button" 
+                      class="inv-calc-price-btn px-3 py-1.5 bg-[#1A1A1A] hover:bg-[#C5A880] text-white hover:text-[#1A1A1A] text-[9px] font-bold uppercase rounded-lg transition-all" 
+                      data-prod-id="${product.id}"
+                    >
+                      ⚡ Update
+                    </button>
+                  </div>
+
+                  <!-- 1-Tap Featured Button Badge -->
+                  <button 
+                    data-featured-id="${product.id}"
+                    class="featured-toggle-btn w-full py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold border transition-all flex items-center justify-center gap-1 ${
+                      product.featured 
+                        ? 'bg-amber-50 text-amber-900 border-amber-300' 
+                        : 'bg-white text-stone-500 border-stone-200'
+                    }"
+                  >
+                    <span>${product.featured ? '⭐ Featured Piece' : '☆ Mark as Featured'}</span>
+                  </button>
+
+                  <!-- Touch Targets Stock Toggle, EDIT & Delete Buttons -->
+                  <div class="flex gap-2">
+                    <button 
+                      data-toggle-id="${product.id}"
+                      class="stock-toggle-badge flex-1 min-h-[40px] rounded-xl text-[9px] uppercase tracking-widest font-bold border transition-all flex items-center justify-center ${
+                        product.inStock 
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' 
+                          : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
                       }"
                     >
-                      <span>${product.featured ? '⭐ Featured Piece' : '☆ Mark as Featured'}</span>
+                      ${product.inStock ? "In Stock" : "Out"}
                     </button>
-
-                    <!-- Touch Targets Stock Toggle, EDIT & Delete Buttons -->
-                    <div class="flex gap-2">
-                      <button 
-                        data-toggle-id="${product.id}"
-                        class="stock-toggle-badge flex-1 min-h-[40px] rounded-xl text-[9px] uppercase tracking-widest font-bold border transition-all flex items-center justify-center ${
-                          product.inStock 
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' 
-                            : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
-                        }"
-                      >
-                        ${product.inStock ? "In Stock" : "Out"}
-                      </button>
-                      <button 
-                        data-edit-id="${product.id}"
-                        class="edit-product-btn px-3 min-h-[40px] text-amber-900 hover:text-[#1A1A1A] border border-[#C5A880] rounded-xl bg-amber-500/10 hover:bg-[#C5A880] text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none flex items-center justify-center gap-1"
-                      >
-                        Edit
-                      </button>
-                      <button 
-                        data-delete-id="${product.id}"
-                        class="delete-product-btn px-3 min-h-[40px] text-rose-600 hover:text-rose-900 border border-rose-200 hover:border-rose-600 rounded-xl bg-rose-50/50 hover:bg-rose-50 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none flex items-center justify-center"
-                      >
-                        Del
-                      </button>
-                    </div>
+                    <button 
+                      data-edit-id="${product.id}"
+                      class="edit-product-btn px-3 min-h-[40px] text-amber-900 hover:text-[#1A1A1A] border border-[#C5A880] rounded-xl bg-amber-500/10 hover:bg-[#C5A880] text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none flex items-center justify-center gap-1"
+                    >
+                      Edit
+                    </button>
+                    <button 
+                      data-delete-id="${product.id}"
+                      class="delete-product-btn px-3 min-h-[40px] text-rose-600 hover:text-rose-900 border border-rose-200 hover:border-rose-600 rounded-xl bg-rose-50/50 hover:bg-rose-50 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none flex items-center justify-center"
+                    >
+                      Del
+                    </button>
                   </div>
                 </div>
               `;
@@ -1039,7 +1204,189 @@ export function initAdmin(containerId) {
       </div>
     `;
 
-    // 1. Render size selection pills for creation form
+    // ==============================================================
+    // A. LINK INGESTION LOGIC
+    // ==============================================================
+    const ingestSingleRadio = tabContent.querySelector('#ingest-type-single');
+    const ingestTwinRadio = tabContent.querySelector('#ingest-type-twin');
+    const ingestSingleLinks = tabContent.querySelector('#ingest-single-links');
+    const ingestTwinLinks = tabContent.querySelector('#ingest-twin-links');
+    const ingestBtn = tabContent.querySelector('#ingest-details-btn');
+    const ingestStatus = tabContent.querySelector('#ingest-status-msg');
+
+    if (ingestSingleRadio && ingestTwinRadio && ingestSingleLinks && ingestTwinLinks) {
+      ingestSingleRadio.addEventListener('change', () => {
+        if (ingestSingleRadio.checked) {
+          ingestSingleLinks.classList.remove('hidden');
+          ingestTwinLinks.classList.add('hidden');
+        }
+      });
+      ingestTwinRadio.addEventListener('change', () => {
+        if (ingestTwinRadio.checked) {
+          ingestTwinLinks.classList.remove('hidden');
+          ingestSingleLinks.classList.add('hidden');
+        }
+      });
+    }
+
+    if (ingestBtn) {
+      ingestBtn.addEventListener('click', () => {
+        const isTwin = ingestTwinRadio && ingestTwinRadio.checked;
+        let urls = [];
+
+        if (isTwin) {
+          const mTop = tabContent.querySelector('#ingest-male-top')?.value.trim() || '';
+          const mBot = tabContent.querySelector('#ingest-male-bottom')?.value.trim() || '';
+          const fTop = tabContent.querySelector('#ingest-female-top')?.value.trim() || '';
+          const fBot = tabContent.querySelector('#ingest-female-bottom')?.value.trim() || '';
+          urls = [mTop, mBot, fTop, fBot].filter(Boolean);
+        } else {
+          const top = tabContent.querySelector('#ingest-top-link')?.value.trim() || '';
+          const bot = tabContent.querySelector('#ingest-bottom-link')?.value.trim() || '';
+          urls = [top, bot].filter(Boolean);
+        }
+
+        // Token extraction and keyword heuristics
+        const allText = urls.join(' ').toLowerCase().replace(/[^a-z0-9\s-_/]/g, ' ');
+        const tokens = Array.from(new Set(allText.split(/[\s-_/]+/).filter(w => w.length > 2 && !['http', 'https', 'com', 'meesho', 'glowroad', 'indiamart', 'item', 'product', 'pdp', 's'].includes(w))));
+
+        // Category determination
+        let inferredCategory = isTwin ? 'Couple' : 'Women';
+        if (!isTwin) {
+          if (tokens.some(t => ['kurta', 'men', 'mens', 'sherwani', 'dhoti', 'pyjama', 'nehru'].includes(t)) && !tokens.some(t => ['women', 'saree', 'lehenga', 'kurti'].includes(t))) {
+            inferredCategory = 'Men';
+          } else if (tokens.some(t => ['kids', 'child', 'boy', 'girl', 'baby'].includes(t))) {
+            inferredCategory = 'Kids';
+          } else if (tokens.some(t => ['elder', 'senior', 'comfort'].includes(t))) {
+            inferredCategory = 'Elders';
+          } else if (tokens.some(t => ['dupatta', 'shawl', 'jewellery', 'stole', 'necklace'].includes(t))) {
+            inferredCategory = 'Accessories';
+          } else {
+            inferredCategory = 'Women';
+          }
+        }
+
+        const catDropdown = tabContent.querySelector('#prod-category');
+        if (catDropdown) catDropdown.value = inferredCategory;
+
+        // Title formatting
+        const luxuryKeywords = tokens.filter(t => ['silk', 'chanderi', 'georgette', 'zari', 'embroidered', 'banarasi', 'handloom', 'lehenga', 'saree', 'kurta', 'set', 'duo', 'anarkali'].includes(t));
+        let generatedTitle = "";
+        if (isTwin) {
+          generatedTitle = luxuryKeywords.length > 0 
+            ? `Twinned Royal ${luxuryKeywords.map(k => k.charAt(0).toUpperCase() + k.slice(1)).join(' ')} Couple Set` 
+            : "Twinned Royal Maroon Silk Couple Festive Set";
+        } else {
+          generatedTitle = luxuryKeywords.length > 0
+            ? `Royal ${luxuryKeywords.map(k => k.charAt(0).toUpperCase() + k.slice(1)).join(' ')} Festive Ensemble`
+            : "Royal Handcrafted Festive Silk Ensemble";
+        }
+
+        const titleInput = tabContent.querySelector('#prod-title');
+        if (titleInput) titleInput.value = generatedTitle;
+
+        // Badge
+        const badgeInput = tabContent.querySelector('#prod-badge');
+        if (badgeInput) badgeInput.value = isTwin ? "Matching Duo" : "Festive Pick";
+
+        // Sizes preset selection
+        selectedSizes.clear();
+        if (isTwin) {
+          selectedSizes.add("Women M / Men L");
+          selectedSizes.add("Women L / Men XL");
+        } else if (inferredCategory === "Women" && tokens.includes('saree')) {
+          selectedSizes.add("Free Size");
+        } else {
+          selectedSizes.add("M");
+          selectedSizes.add("L");
+          selectedSizes.add("XL");
+          selectedSizes.add("XXL");
+        }
+        renderSizeChips();
+
+        // Fabric details
+        const fabricInput = tabContent.querySelector('#prod-fabric');
+        if (fabricInput) {
+          fabricInput.value = isTwin 
+            ? "Her: Chanderi Silk Saree | Him: Art Silk Embroidered Kurta. Dry clean recommended." 
+            : "Pure Handcrafted Artisanal Silk with Fine Zari Weave. Dry clean recommended for enduring luxury.";
+        }
+
+        // Description
+        const descInput = tabContent.querySelector('#prod-desc');
+        if (descInput) {
+          descInput.value = isTwin
+            ? "Celebrate upcoming festivities in coordinated royal splendor. This twin festive couple set blends matching color palettes with artisanal hand-embroidered details and fluid festive drapes, crafted to turn every head."
+            : "Curated for festive celebrations and prestigious gatherings. This handcrafted dropshipped ensemble blends traditional artisanal craftsmanship with a contemporary regal silhouette. Features breathable festive fabric, immaculate thread embroidery, and tailored drape.";
+        }
+
+        // Apply Default Dropshipping Pricing Formula
+        const defaultCost = isTwin ? 850 : 450;
+        const costInput = tabContent.querySelector('#prod-supplier-cost');
+        const profitInput = tabContent.querySelector('#prod-target-profit');
+        const bufferInput = tabContent.querySelector('#prod-rto-buffer');
+        
+        if (costInput) costInput.value = defaultCost;
+        if (profitInput) profitInput.value = 200;
+        if (bufferInput) bufferInput.value = 100;
+        
+        recalculatePricing();
+
+        // Enable COD by default
+        const codToggle = tabContent.querySelector('#prod-cod-available');
+        if (codToggle) codToggle.checked = true;
+
+        if (ingestStatus) {
+          ingestStatus.innerText = `✓ Ingested! Extracted: [${tokens.slice(0, 4).join(', ') || 'Smart Defaults'}]. All fields populated.`;
+          setTimeout(() => { if (ingestStatus) ingestStatus.innerText = ''; }, 4000);
+        }
+      });
+    }
+
+    // ==============================================================
+    // B. AUTOMATED PRICING ENGINE CALCULATION
+    // ==============================================================
+    function recalculatePricing() {
+      const costEl = tabContent.querySelector('#prod-supplier-cost');
+      const profitEl = tabContent.querySelector('#prod-target-profit');
+      const bufferEl = tabContent.querySelector('#prod-rto-buffer');
+      const priceEl = tabContent.querySelector('#prod-price');
+      const mrpEl = tabContent.querySelector('#prod-mrp');
+      const netDisplay = tabContent.querySelector('#pricing-net-profit-display');
+      const discDisplay = tabContent.querySelector('#pricing-discount-display');
+
+      if (!costEl || !priceEl || !mrpEl) return;
+
+      const cost = Number(costEl.value) || 0;
+      const profit = Number(profitEl?.value) >= 0 ? Number(profitEl.value) : 200;
+      const buffer = Number(bufferEl?.value) >= 0 ? Number(bufferEl.value) : 100;
+
+      if (cost > 0) {
+        const pricing = calculatePsychologicalPricing(cost, profit, buffer);
+        priceEl.value = pricing.sellingPrice;
+        mrpEl.value = pricing.mrp;
+
+        if (netDisplay) {
+          netDisplay.innerText = `Net Profit: ₹${pricing.netProfit} (Protected from RTO)`;
+        }
+        if (discDisplay && pricing.mrp > 0) {
+          const discountPct = Math.round(((pricing.mrp - pricing.sellingPrice) / pricing.mrp) * 100);
+          discDisplay.innerText = `~${discountPct}% OFF MRP`;
+        }
+      }
+    }
+
+    const costInput = tabContent.querySelector('#prod-supplier-cost');
+    const profitInput = tabContent.querySelector('#prod-target-profit');
+    const bufferInput = tabContent.querySelector('#prod-rto-buffer');
+
+    if (costInput) costInput.addEventListener('input', recalculatePricing);
+    if (profitInput) profitInput.addEventListener('input', recalculatePricing);
+    if (bufferInput) bufferInput.addEventListener('input', recalculatePricing);
+
+    // ==============================================================
+    // C. SIZE SELECTION PILLS & CHIPS
+    // ==============================================================
     function renderSizeChips() {
       const standardContainer = document.getElementById('standard-sizes-chips');
       const coupleContainer = document.getElementById('couple-sizes-chips');
@@ -1121,7 +1468,9 @@ export function initAdmin(containerId) {
       });
     }
 
-    // 2. Main Image Mode & Dropzone
+    // ==============================================================
+    // D. MAIN IMAGE CROPPER & AUTO-ENHANCER INTEGRATION
+    // ==============================================================
     const mainImgModeUpload = document.getElementById('main-img-mode-upload');
     const mainImgModeUrl = document.getElementById('main-img-mode-url');
     const mainUploadZone = document.getElementById('main-image-upload-zone');
@@ -1133,9 +1482,10 @@ export function initAdmin(containerId) {
     function renderMainPreview() {
       if (uploadedMainImage) {
         mainPreviewContainer.innerHTML = `
-          <div class="relative w-24 h-32 rounded-xl overflow-hidden border border-[#C5A880] mt-3">
+          <div class="relative w-24 h-32 rounded-xl overflow-hidden border-2 border-[#C5A880] mt-3 shadow-sm">
             <img src="${uploadedMainImage}" class="w-full h-full object-cover" />
-            <button type="button" id="remove-main-img-btn" class="absolute top-1 right-1 w-5 h-5 bg-black/70 hover:bg-black text-white text-[10px] rounded-full flex items-center justify-center font-bold focus:outline-none">✕</button>
+            <button type="button" id="remove-main-img-btn" class="absolute top-1 right-1 w-5 h-5 bg-black/80 hover:bg-black text-white text-[10px] rounded-full flex items-center justify-center font-bold focus:outline-none">✕</button>
+            <span class="absolute bottom-0 inset-x-0 bg-[#1A1A1A]/80 text-[7px] text-amber-200 text-center font-bold uppercase py-0.5 tracking-wider">Enhanced</span>
           </div>
         `;
         mainPreviewContainer.classList.remove('hidden');
@@ -1172,30 +1522,14 @@ export function initAdmin(containerId) {
 
     async function handleMainImageUpload(file) {
       if (!file) return;
-      mainDropzone.innerHTML = `
-        <div class="space-y-2 pointer-events-none flex flex-col items-center justify-center py-2">
-          <div class="w-6 h-6 border-2 border-[#C5A880] border-t-transparent rounded-full animate-spin"></div>
-          <p class="text-[10px] font-bold text-[#C5A880] uppercase tracking-wider">Uploading to ImgBB Cloud...</p>
-          <p class="text-[8px] text-[#8A8A8A]">Please wait</p>
-        </div>
-      `;
       try {
-        const url = await uploadToImgBB(file);
-        uploadedMainImage = url;
-        renderMainPreview();
+        const cdnUrl = await openImageCropperStudio(file);
+        if (cdnUrl) {
+          uploadedMainImage = cdnUrl;
+          renderMainPreview();
+        }
       } catch (err) {
-        console.error("Main Image Upload Error:", err);
-        alert("⚠️ ImgBB Upload Failed: " + (err.message || "Network Error"));
-      } finally {
-        mainDropzone.innerHTML = `
-          <div class="space-y-1.5 pointer-events-none">
-            <svg class="w-7 h-7 text-[#C5A880] mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <p class="text-[9px] font-semibold uppercase tracking-wider text-[#1A1A1A]">Drag & Drop or Click to Upload</p>
-            <p class="text-[8px] text-[#8A8A8A]">JPG, PNG, WebP supported</p>
-          </div>
-        `;
+        console.log("Main image cropper cancelled or error:", err);
       }
     }
 
@@ -1231,7 +1565,9 @@ export function initAdmin(containerId) {
 
     renderMainPreview();
 
-    // 3. Gallery Images Mode & Dropzone
+    // ==============================================================
+    // E. GALLERY IMAGES CROPPER & MULTI-FILE UPLOADER
+    // ==============================================================
     const galleryImgModeUpload = document.getElementById('gallery-img-mode-upload');
     const galleryImgModeUrl = document.getElementById('gallery-img-mode-url');
     const galleryUploadZone = document.getElementById('gallery-image-upload-zone');
@@ -1243,7 +1579,7 @@ export function initAdmin(containerId) {
     function renderGalleryPreviews() {
       if (uploadedGalleryImages.length > 0) {
         galleryPreviewContainer.innerHTML = uploadedGalleryImages.map((img, index) => `
-          <div class="relative w-full aspect-[3/4] rounded-xl overflow-hidden border border-[#E5E3DF] mt-2">
+          <div class="relative w-full aspect-[3/4] rounded-xl overflow-hidden border border-[#E5E3DF] mt-2 shadow-xs">
             <img src="${img}" class="w-full h-full object-cover" />
             <button type="button" data-index="${index}" class="remove-gallery-img-btn absolute top-1 right-1 w-5 h-5 bg-black/70 hover:bg-black text-white text-[10px] rounded-full flex items-center justify-center font-bold focus:outline-none">✕</button>
           </div>
@@ -1265,32 +1601,16 @@ export function initAdmin(containerId) {
 
     async function handleGalleryImagesUpload(files) {
       if (!files || files.length === 0) return;
-      galleryDropzone.innerHTML = `
-        <div class="space-y-2 pointer-events-none flex flex-col items-center justify-center py-2">
-          <div class="w-6 h-6 border-2 border-[#C5A880] border-t-transparent rounded-full animate-spin"></div>
-          <p class="text-[10px] font-bold text-[#C5A880] uppercase tracking-wider">Uploading ${files.length} Image(s) to ImgBB...</p>
-          <p class="text-[8px] text-[#8A8A8A]">Please wait</p>
-        </div>
-      `;
-      try {
-        for (let i = 0; i < files.length; i++) {
-          const url = await uploadToImgBB(files[i]);
-          uploadedGalleryImages.push(url);
-          renderGalleryPreviews();
+      for (let i = 0; i < files.length; i++) {
+        try {
+          const cdnUrl = await openImageCropperStudio(files[i]);
+          if (cdnUrl) {
+            uploadedGalleryImages.push(cdnUrl);
+            renderGalleryPreviews();
+          }
+        } catch (err) {
+          console.log(`Gallery image ${i} cancelled or error:`, err);
         }
-      } catch (err) {
-        console.error("Gallery Upload Error:", err);
-        alert("⚠️ ImgBB Upload Failed: " + (err.message || "Network Error"));
-      } finally {
-        galleryDropzone.innerHTML = `
-          <div class="space-y-1.5 pointer-events-none">
-            <svg class="w-7 h-7 text-[#C5A880] mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p class="text-[9px] font-semibold uppercase tracking-wider text-[#1A1A1A]">Drag & Drop or Click to Upload Multiple</p>
-            <p class="text-[8px] text-[#8A8A8A]">Camera roll / multiple files supported</p>
-          </div>
-        `;
       }
     }
 
@@ -1343,7 +1663,9 @@ export function initAdmin(containerId) {
 
     renderGalleryPreviews();
 
-    // 4. Hook Up Category Filter Chips & Live Search Bar Listeners
+    // ==============================================================
+    // F. INVENTORY CATEGORY FILTERS & LIVE SEARCH
+    // ==============================================================
     const catPills = tabContent.querySelectorAll('.inv-cat-pill');
     catPills.forEach(pill => {
       pill.addEventListener('click', () => {
@@ -1366,7 +1688,9 @@ export function initAdmin(containerId) {
       });
     }
 
-    // 5. Hook Up Add Product Form Listener
+    // ==============================================================
+    // G. ADD PRODUCT FORM SUBMISSION
+    // ==============================================================
     const form = document.getElementById('add-product-form');
     if (form) {
       form.addEventListener('submit', async (e) => {
@@ -1375,6 +1699,9 @@ export function initAdmin(containerId) {
         const title = document.getElementById('prod-title').value.trim();
         const category = document.getElementById('prod-category').value;
         const badge = document.getElementById('prod-badge').value.trim();
+        const supplierCost = parseInt(document.getElementById('prod-supplier-cost').value) || 0;
+        const targetProfit = parseInt(document.getElementById('prod-target-profit').value) || 200;
+        const rtoBuffer = parseInt(document.getElementById('prod-rto-buffer').value) || 100;
         const price = parseInt(document.getElementById('prod-price').value);
         const originalPrice = parseInt(document.getElementById('prod-mrp').value);
         const description = document.getElementById('prod-desc').value.trim();
@@ -1389,7 +1716,7 @@ export function initAdmin(containerId) {
         let mainImage = "";
         if (mainImageMode === "upload") {
           if (!uploadedMainImage) {
-            alert("⚠️ Please upload a main product image!");
+            alert("⚠️ Please upload and crop a main product image!");
             return;
           }
           mainImage = uploadedMainImage;
@@ -1422,6 +1749,9 @@ export function initAdmin(containerId) {
           id,
           title,
           category,
+          supplierCost,
+          targetProfit,
+          rtoBuffer,
           price,
           originalPrice,
           discountPercentage,
@@ -1452,7 +1782,60 @@ export function initAdmin(containerId) {
       });
     }
 
-    // 6. Hook Up Featured ⭐ 1-Tap Toggle Buttons
+    // ==============================================================
+    // H. 1-CLICK QUICK-EDITABLE SUPPLIER COST IN INVENTORY TABLE
+    // ==============================================================
+    async function handleQuickCostUpdate(prodId, costValue) {
+      const prod = products.find(p => p.id === prodId);
+      if (!prod) return;
+
+      const cost = Number(costValue) || 0;
+      const profit = prod.targetProfit || 200;
+      const buffer = prod.rtoBuffer || 100;
+      const pricing = calculatePsychologicalPricing(cost, profit, buffer);
+
+      prod.supplierCost = cost;
+      prod.targetProfit = profit;
+      prod.rtoBuffer = buffer;
+      prod.price = pricing.sellingPrice;
+      prod.originalPrice = pricing.mrp;
+      prod.discountPercentage = Math.round(((prod.originalPrice - prod.price) / prod.originalPrice) * 100);
+
+      await saveProductToCloud(prod);
+      renderProductsTab();
+    }
+
+    tabContent.querySelectorAll('.inv-calc-price-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-prod-id');
+        const input = tabContent.querySelector(`.inv-supplier-cost-input[data-prod-id="${id}"]`);
+        if (input) {
+          btn.innerText = "✓";
+          btn.classList.add('bg-emerald-600');
+          await handleQuickCostUpdate(id, input.value);
+        }
+      });
+    });
+
+    tabContent.querySelectorAll('.inv-supplier-cost-input').forEach(input => {
+      input.addEventListener('change', async (e) => {
+        e.stopPropagation();
+        const id = input.getAttribute('data-prod-id');
+        await handleQuickCostUpdate(id, input.value);
+      });
+      input.addEventListener('keydown', async (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const id = input.getAttribute('data-prod-id');
+          await handleQuickCostUpdate(id, input.value);
+        }
+      });
+    });
+
+    // ==============================================================
+    // I. FEATURED ⭐, QUICK-EDIT, STOCK & DELETE BUTTONS
+    // ==============================================================
     const featuredBtns = tabContent.querySelectorAll('.featured-toggle-btn');
     featuredBtns.forEach(btn => {
       btn.addEventListener('click', async (e) => {
@@ -1467,7 +1850,6 @@ export function initAdmin(containerId) {
       });
     });
 
-    // 7. Hook Up EDIT Product Buttons (invokes showQuickEditModal)
     const editBtns = tabContent.querySelectorAll('.edit-product-btn');
     editBtns.forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -1482,7 +1864,6 @@ export function initAdmin(containerId) {
       });
     });
 
-    // 8. Hook Up Stock Toggle Buttons
     const stockBadges = tabContent.querySelectorAll('.stock-toggle-badge');
     stockBadges.forEach(badge => {
       badge.addEventListener('click', async (e) => {
@@ -1496,7 +1877,6 @@ export function initAdmin(containerId) {
       });
     });
 
-    // 9. Hook Up Delete Product Buttons
     const deleteBtns = tabContent.querySelectorAll('.delete-product-btn');
     deleteBtns.forEach(btn => {
       btn.addEventListener('click', async (e) => {
