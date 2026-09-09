@@ -34,11 +34,19 @@ Successfully executed the **Customer-Ready Polish & Mobile UI Overhaul** across 
     - Primary **"ADD TO BAG"** button in sleek dark charcoal (`#181513`) with champagne text (`#E5D5BA`).
     - Circular **Quick View Eye Button** (`border border-[#DDD5C9] text-[#181513] hover:bg-[#F8F5F0]`).
 
-### 5. Floating Luxury Concierge Button
+### 5. Luxury Circular WhatsApp Concierge Floating Widget
 - **`footer.js`**:
-  - Positioned at `bottom: 24px; right: 20px; z-index: 1000;`.
-  - Emerald luxury styling: `background: #0E4431; color: #FFFFFF; box-shadow: 0 4px 18px rgba(14, 68, 49, 0.35); border-radius: 9999px; font-size: 11px; letter-spacing: 0.12em; font-weight: 600;`.
-  - Popup card positioned at `bottom: 80px; right: 20px; z-index: 1000;`.
+  - Eliminated all clipped text/pill artifacts (removed text labels producing stray cropped "C").
+  - Transformed into a clean, modern luxury circular floating button:
+    * Fixed **56px by 56px** (`border-radius: 50%`) circular button.
+    * Centered **28px by 28px** crisp white (`#FFFFFF`) WhatsApp SVG icon.
+    * Background: Deep luxury emerald green (`#0E4431`) with a subtle champagne/gold accent ring (`border: 1.5px solid rgba(229, 213, 186, 0.45)`).
+    * Shadow: `box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);`
+    * Hover: Smooth lift (`transform: translateY(-3px) scale(1.04); transition: all 0.25s ease;`).
+  - Safe-Area Spacing & Scrollbar Separation:
+    * Desktop: `bottom: 28px; right: 28px; z-index: 9999;` (guaranteeing >=28px breathing room away from scrollbars and edges).
+    * Mobile (<768px): `bottom: 20px; right: 20px; width: 50px; height: 50px;`.
+    * Popup consultation drawer positioned gracefully at `bottom: 96px; right: 28px; z-index: 9999;` (mobile: `bottom: 80px; right: 20px;`).
 
 ### 6. High-Contrast Typography in Trust Bar & FAQ Accordions
 - **`footer.js`**:

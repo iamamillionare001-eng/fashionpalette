@@ -40,6 +40,52 @@ function init() {
     .faq-question-title.active {
       color: #8C2B32 !important;
     }
+    .wa-concierge-circle {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #0E4431;
+      border: 1.5px solid rgba(229, 213, 186, 0.45);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+    }
+    .wa-concierge-circle:hover {
+      transform: translateY(-3px) scale(1.04);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+      background-color: #0b3627;
+    }
+    .wa-concierge-circle:active {
+      transform: translateY(0) scale(0.96);
+    }
+    .wa-card-popup {
+      position: fixed;
+      bottom: 96px;
+      right: 28px;
+      z-index: 9999;
+    }
+    @media (max-width: 767px) {
+      .wa-concierge-circle {
+        bottom: 20px;
+        right: 20px;
+        width: 50px;
+        height: 50px;
+      }
+      .wa-card-popup {
+        bottom: 80px;
+        right: 20px;
+        width: calc(100vw - 40px);
+        max-width: 320px;
+      }
+    }
     .wa-card-transition {
       transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
@@ -250,24 +296,23 @@ function init() {
       </div>
     </footer>
 
-    <!-- 4. FLOATING LUXURY WHATSAPP CONCIERGE WIDGET -->
+    <!-- 4. FLOATING LUXURY WHATSAPP CONCIERGE CIRCULAR WIDGET -->
     <div 
       id="wa-concierge-pill" 
-      class="fixed flex items-center gap-2.5 px-5 py-3.5 transition-all hover:scale-105 active:scale-95 cursor-pointer select-none"
-      style="bottom: 24px; right: 20px; z-index: 1000; background: #0E4431; color: #FFFFFF; box-shadow: 0 4px 18px rgba(14, 68, 49, 0.35); border-radius: 9999px; font-size: 11px; letter-spacing: 0.12em; font-weight: 600;"
+      class="wa-concierge-circle"
+      title="Contact Atelier Concierge on WhatsApp"
+      aria-label="WhatsApp Concierge"
     >
-      <!-- Minimal WhatsApp Icon -->
-      <svg class="w-4.5 h-4.5 fill-current flex-shrink-0" viewBox="0 0 24 24">
+      <!-- Centered Crisp White WhatsApp Icon (28px x 28px) -->
+      <svg class="w-7 h-7 fill-white pointer-events-none" viewBox="0 0 24 24" width="28" height="28">
         <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.5-5.739-1.451L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.965C16.59 2.015 14.117.99 11.5.99c-5.441 0-9.866 4.372-9.87 9.802 0 1.706.452 3.375 1.312 4.846l-.996 3.639 3.738-.971zM17.65 14.7c-.305-.152-1.804-.89-2.083-.992-.279-.101-.482-.152-.684.152-.202.304-.783.992-.96 1.193-.178.203-.356.228-.661.076-.305-.152-1.288-.475-2.453-1.514-.908-.81-1.52-1.81-1.698-2.114-.178-.305-.019-.47.133-.62.137-.136.305-.355.457-.533.152-.178.203-.304.305-.507.101-.203.05-.38-.026-.533-.076-.152-.684-1.648-.937-2.257-.247-.594-.497-.514-.684-.523-.178-.009-.38-.01-.583-.01-.203 0-.533.076-.812.38-.279.305-1.066 1.04-1.066 2.537 0 1.497 1.09 2.943 1.242 3.146.152.203 2.146 3.277 5.197 4.594.726.313 1.292.5 1.734.64.728.232 1.39.2 1.913.12.584-.088 1.804-.737 2.058-1.448.254-.71.254-1.32.178-1.448-.076-.127-.279-.203-.583-.355z"/>
       </svg>
-      <span class="uppercase tracking-wider font-semibold">Concierge</span>
     </div>
 
     <!-- WhatsApp Mini popup Card -->
     <div 
       id="wa-concierge-card" 
-      class="wa-card-transition fixed bg-white border border-[#E6DFD5] p-6 w-80 rounded-2xl shadow-2xl flex flex-col gap-4 transform scale-95 opacity-0 pointer-events-none"
-      style="bottom: 80px; right: 20px; z-index: 1000;"
+      class="wa-card-popup wa-card-transition bg-white border border-[#E6DFD5] p-6 w-80 rounded-2xl shadow-2xl flex flex-col gap-4 transform scale-95 opacity-0 pointer-events-none"
     >
       <!-- Monogram Header -->
       <div class="flex items-center space-x-3 border-b border-[#E6DFD5] pb-3">
