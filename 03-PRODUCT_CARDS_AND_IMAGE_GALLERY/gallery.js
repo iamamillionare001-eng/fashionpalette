@@ -21,6 +21,11 @@ const DEFAULT_PRODUCTS = [
     sortOrder: 0,
     featured: true,
     cod_available: true,
+    is_combo: false,
+    supplier_links: {
+      top: "https://www.meesho.com/s/p/royal-chanderi-silk-saree",
+      bottom: ""
+    },
     title: "Royal Chanderi Silk Zari Saree",
     category: "Women",
     price: 2499,
@@ -62,6 +67,11 @@ const DEFAULT_PRODUCTS = [
     sortOrder: 1,
     featured: true,
     cod_available: true,
+    is_combo: false,
+    supplier_links: {
+      top: "https://www.meesho.com/s/p/embroidered-silk-kurta",
+      bottom: "https://www.meesho.com/s/p/mens-churidar"
+    },
     title: "Embroidered Silk Kurta & Churidar Set",
     category: "Men",
     price: 1899,
@@ -93,6 +103,13 @@ const DEFAULT_PRODUCTS = [
     sortOrder: 2,
     featured: true,
     cod_available: false,
+    is_combo: true,
+    supplier_links: {
+      male_top: "https://www.meesho.com/s/p/mens-silk-kurta-maroon",
+      male_bottom: "https://www.meesho.com/s/p/mens-silk-pyjama",
+      female_top: "https://www.meesho.com/s/p/womens-maroon-silk-saree",
+      female_bottom: ""
+    },
     title: "Twinned Royal Maroon Silk Couple Festive Set",
     category: "Couple",
     price: 4299,
@@ -124,6 +141,11 @@ const DEFAULT_PRODUCTS = [
     sortOrder: 3,
     featured: false,
     cod_available: true,
+    is_combo: false,
+    supplier_links: {
+      top: "https://www.meesho.com/s/p/boys-handloom-kurta",
+      bottom: "https://www.meesho.com/s/p/boys-pre-stitched-dhoti"
+    },
     title: "Boys Handloom Kurta Dhoti Set",
     category: "Kids",
     price: 999,
@@ -155,6 +177,11 @@ const DEFAULT_PRODUCTS = [
     sortOrder: 4,
     featured: false,
     cod_available: false,
+    is_combo: false,
+    supplier_links: {
+      top: "https://www.meesho.com/s/p/organic-cotton-kurta",
+      bottom: ""
+    },
     title: "Pure Hand-spun Organic Cotton Kurta",
     category: "Elders",
     price: 1299,
@@ -666,10 +693,14 @@ export function initGallery(containerId) {
     const cart = JSON.parse(localStorage.getItem('fp_cart') || '[]');
     const existingIndex = cart.findIndex(item => item.productId === product.id && item.size === size);
     const mainImg = (product.images && product.images.length > 0) ? product.images[0] : (product.image || "");
+    const isCombo = product.is_combo === true || product.category === "Couple";
+    const supplier_links = product.supplier_links || {};
 
     if (existingIndex > -1) {
       cart[existingIndex].quantity += quantity;
       cart[existingIndex].cod_available = product.cod_available === true;
+      cart[existingIndex].is_combo = isCombo;
+      cart[existingIndex].supplier_links = supplier_links;
     } else {
       cart.push({
         productId: product.id,
@@ -678,7 +709,9 @@ export function initGallery(containerId) {
         size: size,
         quantity: quantity,
         image: mainImg,
-        cod_available: product.cod_available === true
+        cod_available: product.cod_available === true,
+        is_combo: isCombo,
+        supplier_links: supplier_links
       });
     }
 
@@ -789,6 +822,9 @@ export function showQuickEditModal(product, onSaveCallback) {
     ? [...product.images] 
     : (product.image ? [product.image] : ["https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80"]);
 
+  const rawLinks = product.supplier_links || {};
+  let isComboChoice = (product.is_combo === true) || (product.category === "Couple") || Boolean(rawLinks.male_top || rawLinks.female_top);
+
   let mainImageChoice = rawImages[0];
   let galleryImages = rawImages.slice(1);
   let mainImageMode = "keep"; // "keep" | "upload" | "url"
@@ -866,6 +902,63 @@ export function showQuickEditModal(product, onSaveCallback) {
           }">
             ${isCodAvailableChoice ? '✓ COD Enabled' : '✕ Prepaid Only'}
           </button>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- STRUCTURED SUPPLIER LINKS (DROPSHIP FULFILLMENT) -->
+        <!-- ============================================================== -->
+        <div class="p-4 bg-[#F9F8F6] border border-[#E5E3DF] rounded-2xl space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E5E3DF]/70 pb-2">
+            <div>
+              <label class="block text-[9px] uppercase tracking-wider text-[#1A1A1A] font-bold">Structured Supplier Links</label>
+              <p class="text-[8px] text-[#8A8A8A]">Attached to customer orders at checkout for 1-click supplier fulfillment</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <label class="flex items-center gap-1.5 text-xs font-semibold text-[#1A1A1A] cursor-pointer select-none">
+                <input type="radio" name="qe-supplier-type" id="qe-type-single" value="single" ${!isComboChoice ? 'checked' : ''} class="accent-[#1A1A1A] cursor-pointer" />
+                <span class="text-[10px]">Individual Item</span>
+              </label>
+              <label class="flex items-center gap-1.5 text-xs font-semibold text-[#1A1A1A] cursor-pointer select-none">
+                <input type="radio" name="qe-supplier-type" id="qe-type-twin" value="twin" ${isComboChoice ? 'checked' : ''} class="accent-[#1A1A1A] cursor-pointer" />
+                <span class="text-[10px]">Twin Combo</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Dynamic Supplier Link Inputs Container -->
+          <div id="qe-supplier-links-container">
+            <!-- Individual Item (2 fields: Top & Bottom) -->
+            <div id="qe-supplier-single-fields" class="${isComboChoice ? 'hidden' : ''} grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[8px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">Supplier Top Link</label>
+                <input type="url" id="qe-supplier-top" placeholder="https://meesho.com/top-kurta/..." value="${(rawLinks.top || '').replace(/"/g, '&quot;')}" class="w-full bg-white border border-[#E5E3DF] px-3 py-2 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+              </div>
+              <div>
+                <label class="block text-[8px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">Supplier Bottom Link</label>
+                <input type="url" id="qe-supplier-bottom" placeholder="https://meesho.com/bottom-pant/..." value="${(rawLinks.bottom || '').replace(/"/g, '&quot;')}" class="w-full bg-white border border-[#E5E3DF] px-3 py-2 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+              </div>
+            </div>
+
+            <!-- Twin Combo (4 fields: Male Top, Male Bottom, Female Top, Female Bottom) -->
+            <div id="qe-supplier-twin-fields" class="${!isComboChoice ? 'hidden' : ''} grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[8px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">Supplier Male Top Link</label>
+                <input type="url" id="qe-supplier-male-top" placeholder="https://meesho.com/mens-kurta/..." value="${(rawLinks.male_top || '').replace(/"/g, '&quot;')}" class="w-full bg-white border border-[#E5E3DF] px-3 py-2 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+              </div>
+              <div>
+                <label class="block text-[8px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">Supplier Male Bottom Link</label>
+                <input type="url" id="qe-supplier-male-bottom" placeholder="https://meesho.com/mens-pyjama/..." value="${(rawLinks.male_bottom || '').replace(/"/g, '&quot;')}" class="w-full bg-white border border-[#E5E3DF] px-3 py-2 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+              </div>
+              <div>
+                <label class="block text-[8px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">Supplier Female Top Link</label>
+                <input type="url" id="qe-supplier-female-top" placeholder="https://meesho.com/womens-saree/..." value="${(rawLinks.female_top || '').replace(/"/g, '&quot;')}" class="w-full bg-white border border-[#E5E3DF] px-3 py-2 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+              </div>
+              <div>
+                <label class="block text-[8px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">Supplier Female Bottom Link</label>
+                <input type="url" id="qe-supplier-female-bottom" placeholder="https://meesho.com/womens-skirt/..." value="${(rawLinks.female_bottom || '').replace(/"/g, '&quot;')}" class="w-full bg-white border border-[#E5E3DF] px-3 py-2 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- ============================================================== -->
@@ -1134,6 +1227,43 @@ export function showQuickEditModal(product, onSaveCallback) {
         isCodAvailableChoice ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-white text-stone-500 border-stone-300'
       }`;
       codToggleBtn.innerHTML = `<span>${isCodAvailableChoice ? '✓ COD Enabled' : '✕ Prepaid Only'}</span>`;
+    });
+  }
+
+  // Supplier Links Toggle (Single Item vs Twin Combo)
+  const qeTypeSingle = modal.querySelector('#qe-type-single');
+  const qeTypeTwin = modal.querySelector('#qe-type-twin');
+  const qeSingleFields = modal.querySelector('#qe-supplier-single-fields');
+  const qeTwinFields = modal.querySelector('#qe-supplier-twin-fields');
+  const qeCategorySelect = modal.querySelector('#qe-category');
+
+  if (qeTypeSingle && qeTypeTwin && qeSingleFields && qeTwinFields) {
+    qeTypeSingle.addEventListener('change', () => {
+      if (qeTypeSingle.checked) {
+        isComboChoice = false;
+        qeSingleFields.classList.remove('hidden');
+        qeTwinFields.classList.add('hidden');
+      }
+    });
+    qeTypeTwin.addEventListener('change', () => {
+      if (qeTypeTwin.checked) {
+        isComboChoice = true;
+        qeTwinFields.classList.remove('hidden');
+        qeSingleFields.classList.add('hidden');
+      }
+    });
+  }
+
+  if (qeCategorySelect) {
+    qeCategorySelect.addEventListener('change', (e) => {
+      if (e.target.value === "Couple") {
+        if (qeTypeTwin) {
+          qeTypeTwin.checked = true;
+          isComboChoice = true;
+          if (qeTwinFields) qeTwinFields.classList.remove('hidden');
+          if (qeSingleFields) qeSingleFields.classList.add('hidden');
+        }
+      }
     });
   }
 
@@ -1457,10 +1587,28 @@ export function showQuickEditModal(product, onSaveCallback) {
       const finalImages = [finalMainImage, ...galleryImages];
       const discountPercentage = Math.round(((originalPrice - price) / originalPrice) * 100);
 
+      const isTwin = modal.querySelector('#qe-type-twin')?.checked === true;
+      let supplier_links = {};
+      if (isTwin) {
+        supplier_links = {
+          male_top: modal.querySelector('#qe-supplier-male-top')?.value.trim() || '',
+          male_bottom: modal.querySelector('#qe-supplier-male-bottom')?.value.trim() || '',
+          female_top: modal.querySelector('#qe-supplier-female-top')?.value.trim() || '',
+          female_bottom: modal.querySelector('#qe-supplier-female-bottom')?.value.trim() || ''
+        };
+      } else {
+        supplier_links = {
+          top: modal.querySelector('#qe-supplier-top')?.value.trim() || '',
+          bottom: modal.querySelector('#qe-supplier-bottom')?.value.trim() || ''
+        };
+      }
+
       const updatedProduct = {
         ...product,
         title,
         category,
+        is_combo: isTwin,
+        supplier_links,
         supplierCost,
         targetProfit,
         rtoBuffer,
@@ -1919,9 +2067,14 @@ export function showQuickViewModal(product) {
     const existingIndex = cart.findIndex(item => item.productId === product.id && item.size === selectedSize);
     const mainImg = (product.images && product.images.length > 0) ? product.images[0] : (product.image || "");
 
+    const isCombo = product.is_combo === true || product.category === "Couple";
+    const supplier_links = product.supplier_links || {};
+
     if (existingIndex > -1) {
       cart[existingIndex].quantity += currentQty;
       cart[existingIndex].cod_available = product.cod_available === true;
+      cart[existingIndex].is_combo = isCombo;
+      cart[existingIndex].supplier_links = supplier_links;
     } else {
       cart.push({
         productId: product.id,
@@ -1930,7 +2083,9 @@ export function showQuickViewModal(product) {
         size: selectedSize,
         quantity: currentQty,
         image: mainImg,
-        cod_available: product.cod_available === true
+        cod_available: product.cod_available === true,
+        is_combo: isCombo,
+        supplier_links: supplier_links
       });
     }
 

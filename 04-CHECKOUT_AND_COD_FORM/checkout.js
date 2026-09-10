@@ -712,6 +712,21 @@ export function initCheckout(containerId) {
     const randomNum = Math.floor(1000 + Math.random() * 9000);
     const orderId = `#FP-${randomNum}`;
 
+    // Snapshot each ordered item with its supplier_links and is_combo payload
+    const cachedProducts = JSON.parse(localStorage.getItem('fp_products_data') || '[]');
+    const snapshottedItems = cart.map(item => {
+      const prod = cachedProducts.find(p => p.id === item.productId);
+      const isCombo = (item.is_combo !== undefined)
+        ? item.is_combo
+        : (prod?.is_combo === true || prod?.category === "Couple" || Boolean(prod?.supplier_links?.male_top));
+      const supplier_links = item.supplier_links || prod?.supplier_links || {};
+      return {
+        ...item,
+        is_combo: isCombo,
+        supplier_links: supplier_links
+      };
+    });
+
     const newOrder = {
       id: orderId,
       date: new Date().toLocaleDateString('en-IN'),
@@ -721,7 +736,7 @@ export function initCheckout(containerId) {
       address: address,
       city: city,
       state: state,
-      items: cart,
+      items: snapshottedItems,
       total: total,
       paymentMethod: payMethod === "COD" ? "Cash on Delivery (COD)" : "Prepaid / UPI Transfer",
       status: "Pending Dispatch"

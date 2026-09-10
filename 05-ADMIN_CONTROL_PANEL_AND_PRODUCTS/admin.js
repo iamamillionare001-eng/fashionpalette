@@ -135,8 +135,9 @@ export function initAdmin(containerId) {
   let mainImageMode = "upload"; // "upload" | "url"
   let galleryImageMode = "upload"; // "upload" | "url"
 
-  // Order ledger expand state
+  // Order ledger expand and multi-select state
   const expandedOrders = new Set();
+  const selectedOrderIds = new Set();
 
   function isAuthenticated() {
     return sessionStorage.getItem('admin_authenticated') === 'true';
@@ -1767,10 +1768,28 @@ export function initAdmin(containerId) {
         const codAvailableInput = document.getElementById('prod-cod-available');
         const cod_available = codAvailableInput ? codAvailableInput.checked : false;
 
+        const isTwin = ingestTwinRadio && ingestTwinRadio.checked;
+        let supplier_links = {};
+        if (isTwin) {
+          supplier_links = {
+            male_top: tabContent.querySelector('#ingest-male-top')?.value.trim() || '',
+            male_bottom: tabContent.querySelector('#ingest-male-bottom')?.value.trim() || '',
+            female_top: tabContent.querySelector('#ingest-female-top')?.value.trim() || '',
+            female_bottom: tabContent.querySelector('#ingest-female-bottom')?.value.trim() || ''
+          };
+        } else {
+          supplier_links = {
+            top: tabContent.querySelector('#ingest-top-link')?.value.trim() || '',
+            bottom: tabContent.querySelector('#ingest-bottom-link')?.value.trim() || ''
+          };
+        }
+
         const newProduct = {
           id,
           title,
           category,
+          is_combo: isTwin,
+          supplier_links,
           supplierCost,
           targetProfit,
           rtoBuffer,
@@ -1942,7 +1961,7 @@ export function initAdmin(containerId) {
     }
 
     tabContent.innerHTML = `
-      <div class="space-y-8 animate-fadeIn">
+      <div class="space-y-8 animate-fadeIn relative pb-20">
         
         <!-- Top Row: Configurable Supplier Cost & Export Tools -->
         <div class="bg-white border border-[#E5E3DF] p-5 rounded-2xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-sm">
@@ -1965,11 +1984,12 @@ export function initAdmin(containerId) {
           <button 
             id="csv-export-btn" 
             class="px-5 py-3 min-h-[48px] bg-[#1A1A1A] hover:bg-[#C5A880] hover:text-[#1A1A1A] text-white text-xs uppercase tracking-widest font-semibold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 focus:outline-none shadow-xs"
+            title="Export full catalog order history as CSV"
           >
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
-            <span>Export Orders (CSV)</span>
+            <span>Export All Orders (CSV)</span>
           </button>
         </div>
 
@@ -1999,6 +2019,15 @@ export function initAdmin(containerId) {
             <table class="min-w-full divide-y divide-[#E5E3DF]">
               <thead>
                 <tr class="text-[9px] uppercase tracking-widest font-semibold text-[#8A8A8A] text-left">
+                  <th scope="col" class="pb-3 pr-2 w-8">
+                    <input 
+                      type="checkbox" 
+                      id="master-select-all" 
+                      class="w-4 h-4 rounded text-[#1A1A1A] accent-[#1A1A1A] cursor-pointer" 
+                      title="Select / Deselect All Orders" 
+                      ${orders.length > 0 && selectedOrderIds.size === orders.length ? 'checked' : ''} 
+                    />
+                  </th>
                   <th scope="col" class="pb-3 pr-2">Order ID</th>
                   <th scope="col" class="pb-3 pr-2">Date</th>
                   <th scope="col" class="pb-3 pr-2">Customer Details</th>
@@ -2011,8 +2040,18 @@ export function initAdmin(containerId) {
               </thead>
               <tbody class="divide-y divide-[#E5E3DF] text-xs">
                 ${orders.map(order => {
+                  const isSelected = selectedOrderIds.has(order.id);
                   return `
-                    <tr class="align-top group">
+                    <tr class="align-top group ${isSelected ? 'bg-amber-50/40' : ''}">
+                      <td class="py-4 pr-2">
+                        <input 
+                          type="checkbox" 
+                          data-order-id="${order.id}" 
+                          class="order-row-checkbox w-4 h-4 rounded text-[#1A1A1A] accent-[#1A1A1A] cursor-pointer" 
+                          ${isSelected ? 'checked' : ''} 
+                          title="Select order"
+                        />
+                      </td>
                       <td class="py-4 font-mono font-bold text-[#C5A880] whitespace-nowrap">
                         ${order.id}
                       </td>
@@ -2064,6 +2103,13 @@ export function initAdmin(containerId) {
                       </td>
                       <td class="py-4 text-right whitespace-nowrap space-x-1">
                         <button 
+                          data-export-order-id="${order.id}"
+                          class="export-single-csv-btn min-h-[48px] border border-[#E5E3DF] hover:border-[#C5A880] text-[#1A1A1A] hover:bg-[#C5A880]/10 rounded-lg px-2.5 py-2 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none inline-flex items-center gap-1"
+                          title="Export this order with customer & supplier links to CSV"
+                        >
+                          <span>📥 CSV</span>
+                        </button>
+                        <button 
                           data-chat-id="${order.id}"
                           class="chat-customer-btn min-h-[48px] border border-[#E5E3DF] text-[#1A1A1A] hover:bg-stone-50 rounded-lg px-2.5 py-2 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none"
                         >
@@ -2094,13 +2140,23 @@ export function initAdmin(containerId) {
         <div class="block md:hidden space-y-4">
           ${orders.map(order => {
             const isExpanded = expandedOrders.has(order.id);
+            const isSelected = selectedOrderIds.has(order.id);
             return `
-              <div class="bg-white border border-[#E5E3DF] rounded-2xl shadow-sm p-4 space-y-3" data-order-card-id="${order.id}">
+              <div class="bg-white border ${isSelected ? 'border-[#C5A880] ring-1 ring-[#C5A880]' : 'border-[#E5E3DF]'} rounded-2xl shadow-sm p-4 space-y-3" data-order-card-id="${order.id}">
                 <!-- Card Header (Always Visible) -->
                 <div class="flex items-start justify-between">
-                  <div>
-                    <p class="font-mono font-bold text-[#C5A880] text-xs">${order.id}</p>
-                    <p class="text-[10px] text-[#8A8A8A] mt-0.5">${order.date}</p>
+                  <div class="flex items-center gap-3">
+                    <input 
+                      type="checkbox" 
+                      data-order-id="${order.id}" 
+                      class="order-row-checkbox w-4 h-4 rounded text-[#1A1A1A] accent-[#1A1A1A] cursor-pointer" 
+                      ${isSelected ? 'checked' : ''} 
+                      title="Select order"
+                    />
+                    <div>
+                      <p class="font-mono font-bold text-[#C5A880] text-xs">${order.id}</p>
+                      <p class="text-[10px] text-[#8A8A8A] mt-0.5">${order.date}</p>
+                    </div>
                   </div>
                   <div class="text-right">
                     <p class="font-bold text-[#1A1A1A] text-sm">₹${order.total.toLocaleString('en-IN')}</p>
@@ -2181,6 +2237,13 @@ export function initAdmin(containerId) {
 
                     <div class="flex items-end gap-2">
                       <button 
+                        data-export-order-id="${order.id}"
+                        class="export-single-csv-btn flex-1 min-h-[48px] border border-[#E5E3DF] hover:border-[#C5A880] text-[#1A1A1A] hover:bg-[#C5A880]/10 rounded-xl text-[10px] uppercase tracking-widest font-bold transition-all focus:outline-none flex items-center justify-center gap-1 shadow-xs"
+                        title="Export this order to CSV"
+                      >
+                        📥 CSV
+                      </button>
+                      <button 
                         data-print-id="${order.id}"
                         class="print-slip-btn flex-1 min-h-[48px] border border-[#E5E3DF] text-[#1A1A1A] hover:bg-stone-50 rounded-xl text-[10px] uppercase tracking-widest font-bold transition-all focus:outline-none flex items-center justify-center"
                       >
@@ -2200,8 +2263,92 @@ export function initAdmin(containerId) {
           }).join('')}
         </div>
 
+        <!-- Sticky Floating Multi-Select Action Bar -->
+        ${selectedOrderIds.size > 0 ? `
+          <div id="selected-orders-bar" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#1A1A1A]/95 backdrop-blur-md text-white px-5 sm:px-6 py-3 rounded-full shadow-2xl border border-[#C5A880] flex items-center gap-3 sm:gap-4 text-xs animate-fadeIn max-w-[95vw]">
+            <span class="font-semibold text-amber-200 flex items-center gap-1.5 whitespace-nowrap text-[11px] sm:text-xs">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+              <span>${selectedOrderIds.size} Order${selectedOrderIds.size > 1 ? 's' : ''} Selected</span>
+            </span>
+            <span class="text-stone-600 select-none">|</span>
+            <button id="export-selected-csv-btn" class="px-4 py-2 bg-[#C5A880] hover:bg-[#d4b993] text-[#1A1A1A] font-bold rounded-full text-[10px] sm:text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-md focus:outline-none whitespace-nowrap">
+              <span>📥 Export Selected as CSV</span>
+            </button>
+            <button id="deselect-all-orders-btn" class="px-3.5 py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white font-semibold rounded-full text-[9px] sm:text-[10px] uppercase tracking-wider transition-all cursor-pointer focus:outline-none whitespace-nowrap border border-stone-700">
+              Deselect All
+            </button>
+          </div>
+        ` : ''}
+
       </div>
     `;
+
+    // Hook Up Master Select All Checkbox
+    const masterCheckbox = tabContent.querySelector("#master-select-all");
+    if (masterCheckbox) {
+      masterCheckbox.addEventListener("change", (e) => {
+        if (e.target.checked) {
+          orders.forEach(o => selectedOrderIds.add(o.id));
+        } else {
+          selectedOrderIds.clear();
+        }
+        renderLedgerTab();
+      });
+    }
+
+    // Hook Up Individual Row Checkboxes
+    const rowCheckboxes = tabContent.querySelectorAll(".order-row-checkbox");
+    rowCheckboxes.forEach(cb => {
+      cb.addEventListener("change", (e) => {
+        e.stopPropagation();
+        const orderId = cb.getAttribute("data-order-id");
+        if (cb.checked) {
+          selectedOrderIds.add(orderId);
+        } else {
+          selectedOrderIds.delete(orderId);
+        }
+        renderLedgerTab();
+      });
+    });
+
+    // Hook Up Export Selected CSV Button
+    const exportSelectedBtn = tabContent.querySelector("#export-selected-csv-btn");
+    if (exportSelectedBtn) {
+      exportSelectedBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const chosen = orders.filter(o => selectedOrderIds.has(o.id));
+        if (chosen.length === 0) {
+          alert("Please select at least 1 order to export.");
+          return;
+        }
+        const todayStr = new Date().toISOString().slice(0, 10);
+        exportOrdersToCSV(chosen, `FashionPalette_Selected_Orders_${todayStr}.csv`);
+      });
+    }
+
+    // Hook Up Deselect All Button
+    const deselectBtn = tabContent.querySelector("#deselect-all-orders-btn");
+    if (deselectBtn) {
+      deselectBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        selectedOrderIds.clear();
+        renderLedgerTab();
+      });
+    }
+
+    // Hook Up Single Order CSV Exporter Buttons
+    const singleExportBtns = tabContent.querySelectorAll(".export-single-csv-btn");
+    singleExportBtns.forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute("data-export-order-id");
+        const order = orders.find(o => o.id === id);
+        if (order) {
+          const cleanId = order.id.replace(/[^a-zA-Z0-9_-]/g, "");
+          exportOrdersToCSV([order], `FashionPalette_Order_${cleanId}.csv`);
+        }
+      });
+    });
 
     // Hook Up Supplier Cost Change Listener
     const costInput = document.getElementById("supplier-cost-input");
@@ -2220,10 +2367,13 @@ export function initAdmin(containerId) {
       });
     }
 
-    // Hook Up CSV Exporter
+    // Hook Up Global Full Catalog CSV Exporter
     const csvBtn = document.getElementById("csv-export-btn");
     if (csvBtn) {
-      csvBtn.addEventListener("click", () => exportOrdersToCSV(orders));
+      csvBtn.addEventListener("click", () => {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        exportOrdersToCSV(orders, `FashionPalette_All_Orders_${todayStr}.csv`);
+      });
     }
 
     // Hook Up Status Selectors (working on both mobile and desktop views)
@@ -2265,6 +2415,7 @@ export function initAdmin(containerId) {
         const order = orders.find(o => o.id === id);
         if (order && confirm(`Permanently delete order ${order.id}?`)) {
           await deleteOrderFromCloud(id);
+          selectedOrderIds.delete(id);
           renderAdminConsole();
         }
       });
@@ -2480,30 +2631,127 @@ export function initAdmin(containerId) {
     }
   }
 
-  // --- CSV Exporter Method ---
-  function exportOrdersToCSV(orders) {
-    let csv = "Order ID,Customer Name,Phone,Address,City,State,Pincode,Item Title,Size,Quantity,Total Payable,Payment Method,Status,Date\n";
-    
-    orders.forEach(order => {
-      const cleanName = order.customerName.replace(/"/g, '""');
-      const cleanAddress = order.address.replace(/"/g, '""');
-      const cleanCity = order.city.replace(/"/g, '""');
-      const cleanState = order.state.replace(/"/g, '""');
-      
-      order.items.forEach(item => {
-        const cleanTitle = item.title.replace(/"/g, '""');
-        csv += `"${order.id}","${cleanName}","+91${order.phone}","${cleanAddress}","${cleanCity}","${cleanState}","${order.pincode}","${cleanTitle}","${item.size}",${item.quantity},${order.total},"${order.paymentMethod}","${order.status}","${order.date}"\n`;
-      });
+  // --- CSV Exporter Method with Comprehensive 14-Column Structure ---
+  function exportOrdersToCSV(ordersList, customFilename) {
+    if (!ordersList || ordersList.length === 0) {
+      alert("No orders available to export.");
+      return;
+    }
+
+    const cachedProducts = getProducts();
+
+    const headers = [
+      "Order ID",
+      "Order Date & Time",
+      "Customer Name",
+      "Phone Number",
+      "Shipping Address & PIN Code",
+      "Payment Method (COD / UPI)",
+      "Order Status",
+      "Total Amount (₹)",
+      "Product Titles & Selected Sizes",
+      "Product Type (Individual / Twin Combo)",
+      "Supplier Male Top / Individual Top Link",
+      "Supplier Male Bottom / Individual Bottom Link",
+      "Supplier Female Top Link (N/A if individual)",
+      "Supplier Female Bottom Link (N/A if individual)"
+    ];
+
+    const escapeCSV = (str) => {
+      if (str === null || str === undefined) return '""';
+      const s = String(str).replace(/"/g, '""');
+      return `"${s}"`;
+    };
+
+    const rows = [];
+    rows.push(headers.map(h => escapeCSV(h)).join(","));
+
+    ordersList.forEach(order => {
+      const orderId = order.id || "";
+      const orderDate = order.date || "";
+      const customerName = order.customerName || "";
+      const phone = order.phone ? (order.phone.startsWith("+91") ? order.phone : `+91 ${order.phone}`) : "";
+      const fullAddress = [order.address, order.city, order.state, order.pincode].filter(Boolean).join(", ");
+      const paymentMethod = order.paymentMethod ? order.paymentMethod.replace("Transfer", "").trim() : "COD";
+      const status = order.status || "Pending Dispatch";
+      const totalAmount = order.total || 0;
+
+      if (!order.items || order.items.length === 0) {
+        rows.push([
+          escapeCSV(orderId),
+          escapeCSV(orderDate),
+          escapeCSV(customerName),
+          escapeCSV(phone),
+          escapeCSV(fullAddress),
+          escapeCSV(paymentMethod),
+          escapeCSV(status),
+          escapeCSV(totalAmount),
+          escapeCSV("N/A"),
+          escapeCSV("N/A"),
+          escapeCSV(""),
+          escapeCSV(""),
+          escapeCSV("N/A"),
+          escapeCSV("N/A")
+        ].join(","));
+      } else {
+        order.items.forEach(item => {
+          const prod = cachedProducts.find(p => p.id === item.productId || p.id === item.id);
+          const isCombo = (item.is_combo !== undefined)
+            ? item.is_combo
+            : (prod?.is_combo === true || prod?.category === "Couple" || Boolean(prod?.supplier_links?.male_top) || item.size?.includes("/"));
+          
+          const supplierLinks = item.supplier_links || prod?.supplier_links || {};
+          const itemTitleAndSize = `${item.title} (Size: ${item.size || "Free Size"} x ${item.quantity || 1})`;
+          const prodType = isCombo ? "Twin Combo" : "Individual";
+
+          let maleTopOrTop = "";
+          let maleBottomOrBottom = "";
+          let femaleTop = "N/A";
+          let femaleBottom = "N/A";
+
+          if (isCombo) {
+            maleTopOrTop = supplierLinks.male_top || supplierLinks.top || "";
+            maleBottomOrBottom = supplierLinks.male_bottom || supplierLinks.bottom || "";
+            femaleTop = supplierLinks.female_top || "";
+            femaleBottom = supplierLinks.female_bottom || "";
+          } else {
+            maleTopOrTop = supplierLinks.top || supplierLinks.male_top || "";
+            maleBottomOrBottom = supplierLinks.bottom || supplierLinks.male_bottom || "";
+            femaleTop = "N/A";
+            femaleBottom = "N/A";
+          }
+
+          rows.push([
+            escapeCSV(orderId),
+            escapeCSV(orderDate),
+            escapeCSV(customerName),
+            escapeCSV(phone),
+            escapeCSV(fullAddress),
+            escapeCSV(paymentMethod),
+            escapeCSV(status),
+            escapeCSV(totalAmount),
+            escapeCSV(itemTitleAndSize),
+            escapeCSV(prodType),
+            escapeCSV(maleTopOrTop),
+            escapeCSV(maleBottomOrBottom),
+            escapeCSV(femaleTop),
+            escapeCSV(femaleBottom)
+          ].join(","));
+        });
+      }
     });
 
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const filename = customFilename || `FashionPalette_Orders_${Date.now()}.csv`;
+    const csvContent = "\uFEFF" + rows.join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `fashionpalette_supplier_orders_${Date.now()}.csv`;
+    link.download = filename;
     link.style.display = "none";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
   }
 
   // --- WhatsApp Customer Chat Method ---
