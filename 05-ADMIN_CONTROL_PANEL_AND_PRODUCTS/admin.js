@@ -18,7 +18,16 @@ import {
   saveOrderToCloud, 
   deleteOrderFromCloud 
 } from '../07-STORE_SETTINGS_AND_THEME_COLORS/firebase_sync.js';
-import { openImageCropperStudio, calculatePsychologicalPricing, openImageLightbox } from './image_studio.js';
+import { 
+  openImageCropperStudio, 
+  calculatePsychologicalPricing, 
+  openImageLightbox,
+  processAndUploadProductImage,
+  isCropperEnabled,
+  isEnhancerEnabled,
+  setCropperEnabled,
+  setEnhancerEnabled
+} from './image_studio.js';
 
 // Helper local functions to read/write product catalog
 function getProducts() {
@@ -884,6 +893,55 @@ export function initAdmin(containerId) {
 
             </div>
 
+            <!-- Independent Image Cropper & Auto-Enhancer Feature Toolbar -->
+            <div class="p-3.5 bg-gradient-to-r from-[#1A1A1A] via-stone-900 to-[#1A1A1A] text-[#F9F8F6] rounded-2xl border border-[#C5A880]/60 shadow-xs space-y-2.5">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs">📸</span>
+                  <h5 class="text-[10px] font-serif uppercase tracking-wider text-amber-200 font-bold">Media Upload Pipeline &amp; Studio Controls</h5>
+                </div>
+                <span class="text-[8px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full bg-[#C5A880]/20 text-[#C5A880] border border-[#C5A880]/40">
+                  Auto-Sync
+                </span>
+              </div>
+              
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
+                <!-- Toggle A: Image Cropper -->
+                <label class="flex items-center justify-between p-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 cursor-pointer select-none transition-all">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs">✂️</span>
+                    <div>
+                      <p class="text-[10px] font-bold text-[#F9F8F6] tracking-wide">Enable Image Cropper</p>
+                      <p class="text-[8px] text-stone-400">Interactive 3:4 modal framing</p>
+                    </div>
+                  </div>
+                  <input 
+                    type="checkbox" 
+                    id="admin-toggle-cropper" 
+                    class="w-4 h-4 accent-[#C5A880] rounded cursor-pointer" 
+                    ${isCropperEnabled() ? 'checked' : ''} 
+                  />
+                </label>
+
+                <!-- Toggle B: Canvas Auto-Enhancer -->
+                <label class="flex items-center justify-between p-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 cursor-pointer select-none transition-all">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs">✨</span>
+                    <div>
+                      <p class="text-[10px] font-bold text-[#F9F8F6] tracking-wide">Enable Canvas Auto-Enhancer</p>
+                      <p class="text-[8px] text-stone-400">+8% contrast &amp; crisp sharpening</p>
+                    </div>
+                  </div>
+                  <input 
+                    type="checkbox" 
+                    id="admin-toggle-enhancer" 
+                    class="w-4 h-4 accent-[#C5A880] rounded cursor-pointer" 
+                    ${isEnhancerEnabled() ? 'checked' : ''} 
+                  />
+                </label>
+              </div>
+            </div>
+
             <!-- Main Product Image -->
             <div class="space-y-2 border-t border-[#E5E3DF]/50 pt-3">
               <div class="flex items-center justify-between">
@@ -1668,16 +1726,32 @@ export function initAdmin(containerId) {
       });
     }
 
+    // Wire change listeners for Independent Toggles in Admin Panel
+    const adminToggleCropper = tabContent.querySelector('#admin-toggle-cropper');
+    const adminToggleEnhancer = tabContent.querySelector('#admin-toggle-enhancer');
+
+    if (adminToggleCropper) {
+      adminToggleCropper.addEventListener('change', (e) => {
+        setCropperEnabled(e.target.checked);
+      });
+    }
+
+    if (adminToggleEnhancer) {
+      adminToggleEnhancer.addEventListener('change', (e) => {
+        setEnhancerEnabled(e.target.checked);
+      });
+    }
+
     async function handleMainImageUpload(file) {
       if (!file) return;
       try {
-        const cdnUrl = await openImageCropperStudio(file);
+        const cdnUrl = await processAndUploadProductImage(file);
         if (cdnUrl) {
           uploadedMainImage = cdnUrl;
           renderMainPreview();
         }
       } catch (err) {
-        console.log("Main image cropper cancelled or error:", err);
+        console.log("Main image processing/upload cancelled or error:", err);
       }
     }
 
@@ -1763,13 +1837,13 @@ export function initAdmin(containerId) {
       if (!files || files.length === 0) return;
       for (let i = 0; i < files.length; i++) {
         try {
-          const cdnUrl = await openImageCropperStudio(files[i]);
+          const cdnUrl = await processAndUploadProductImage(files[i]);
           if (cdnUrl) {
             uploadedGalleryImages.push(cdnUrl);
             renderGalleryPreviews();
           }
         } catch (err) {
-          console.log(`Gallery image ${i} cancelled or error:`, err);
+          console.log(`Gallery image ${i} processing/upload cancelled or error:`, err);
         }
       }
     }

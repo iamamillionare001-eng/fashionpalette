@@ -134,6 +134,103 @@ export function calculatePsychologicalPricing(supplierCost, targetProfit = 200, 
 }
 
 /**
+ * Independent Feature Toggle Getters & Setters (persisted in localStorage)
+ */
+export function isCropperEnabled() {
+  return localStorage.getItem('fp_enable_cropper') !== 'false';
+}
+
+export function isEnhancerEnabled() {
+  return localStorage.getItem('fp_enable_enhancer') !== 'false';
+}
+
+export function setCropperEnabled(enabled) {
+  localStorage.setItem('fp_enable_cropper', enabled ? 'true' : 'false');
+  window.dispatchEvent(new CustomEvent('fp_image_settings_changed', { detail: { cropper: enabled } }));
+}
+
+export function setEnhancerEnabled(enabled) {
+  localStorage.setItem('fp_enable_enhancer', enabled ? 'true' : 'false');
+  window.dispatchEvent(new CustomEvent('fp_image_settings_changed', { detail: { enhancer: enabled } }));
+}
+
+/**
+ * CONDITIONAL UPLOAD WORKFLOW PIPELINE:
+ * 1. If Cropper is enabled:
+ *    - Opens Cropper.js modal.
+ *    - On confirm, if Enhancer is enabled, runs canvas auto-enhance before ImgBB upload;
+ *      if Enhancer is disabled, uploads clean cropped canvas directly to ImgBB.
+ * 2. If Cropper is disabled:
+ *    - Bypasses Cropper modal completely.
+ *    - If Enhancer is enabled, loads image onto offscreen 2D canvas, runs auto-enhance (+8% contrast, sharpen), then uploads to ImgBB.
+ *    - If Enhancer is disabled, uploads the raw original file directly to ImgBB without altering pixels.
+ *
+ * @param {File|Blob} file 
+ * @param {Object} [options]
+ * @returns {Promise<string>} Uploaded ImgBB URL
+ */
+export async function processAndUploadProductImage(file, options = {}) {
+  if (!file) throw new Error("No image file provided");
+
+  const cropper = (typeof options.enableCropper === 'boolean') 
+    ? options.enableCropper 
+    : isCropperEnabled();
+
+  const enhancer = (typeof options.enableEnhancer === 'boolean') 
+    ? options.enableEnhancer 
+    : isEnhancerEnabled();
+
+  // Case 1 & 2: Cropper enabled
+  if (cropper) {
+    return await openImageCropperStudio(file, { autoEnhance: enhancer, ...options });
+  }
+
+  // Case 3: Cropper disabled, Auto-Enhancer enabled -> Offscreen canvas enhancement
+  if (enhancer) {
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("Failed to read image file"));
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onerror = () => reject(new Error("Failed to load image element for canvas enhancement"));
+        img.onload = async () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth || img.width;
+            canvas.height = img.naturalHeight || img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+
+            // Apply 2D Canvas Auto-Enhance filter
+            const enhancedCanvas = applyCanvasAutoEnhance(canvas);
+
+            enhancedCanvas.toBlob(async (blob) => {
+              if (!blob) {
+                reject(new Error("Failed to create enhanced image blob"));
+                return;
+              }
+              try {
+                const cdnUrl = await uploadToImgBB(blob);
+                resolve(cdnUrl);
+              } catch (err) {
+                reject(err);
+              }
+            }, 'image/jpeg', 0.92);
+          } catch (err) {
+            reject(err);
+          }
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Case 4: Both Cropper & Auto-Enhancer disabled -> Direct raw upload
+  return await uploadToImgBB(file);
+}
+
+/**
  * Opens an in-browser Crop & Enhance Studio modal
  * Supports all image formats: AVIF, WebP, PNG, JPG, JPEG, and camera uploads.
  * @param {File|Blob} file 
@@ -169,6 +266,7 @@ function showStudioModal(imageDataUrl, resolve, reject, options) {
   let currentAspectRatio = 3 / 4; // Default 3:4 portrait (Fashion standard)
   let cropperInstance = null;
   let scaleX = 1;
+  const isEnhanceChecked = (typeof options.autoEnhance === 'boolean') ? options.autoEnhance : isEnhancerEnabled();
 
   modal.innerHTML = `
     <div class="bg-white rounded-3xl border border-[#E5E3DF] max-w-3xl w-full max-h-[94vh] flex flex-col shadow-2xl overflow-hidden animate-scaleUp">
@@ -240,8 +338,8 @@ function showStudioModal(imageDataUrl, resolve, reject, options) {
         <!-- Loading / Enhancing Overlay -->
         <div id="studio-loading-overlay" class="absolute inset-0 bg-[#1A1A1A]/90 backdrop-blur-sm z-30 flex flex-col items-center justify-center space-y-3 hidden">
           <div class="w-8 h-8 border-3 border-[#C5A880] border-t-transparent rounded-full animate-spin"></div>
-          <p class="text-xs font-bold text-amber-200 uppercase tracking-widest font-serif">Applying Auto-Enhancement & Uploading...</p>
-          <p class="text-[10px] text-stone-400 font-sans">+8% Contrast &bull; 3x3 Edge Sharpen &bull; ImgBB CDN</p>
+          <p id="studio-loading-text" class="text-xs font-bold text-amber-200 uppercase tracking-widest font-serif">Processing & Uploading...</p>
+          <p class="text-[10px] text-stone-400 font-sans">Haute Couture Compression &bull; ImgBB CDN</p>
         </div>
       </div>
 
@@ -250,7 +348,7 @@ function showStudioModal(imageDataUrl, resolve, reject, options) {
         
         <!-- Auto-Enhance Feature Toggle -->
         <label class="flex items-center gap-2.5 cursor-pointer select-none bg-[#F9F8F6] px-3.5 py-2 rounded-xl border border-[#E5E3DF]">
-          <input type="checkbox" id="studio-auto-enhance-toggle" checked class="w-4 h-4 text-emerald-600 rounded cursor-pointer accent-[#1A1A1A]" />
+          <input type="checkbox" id="studio-auto-enhance-toggle" ${isEnhanceChecked ? 'checked' : ''} class="w-4 h-4 text-emerald-600 rounded cursor-pointer accent-[#1A1A1A]" />
           <div class="text-left">
             <span class="text-xs font-bold text-[#1A1A1A] flex items-center gap-1">
               <span>⚡ Auto-Enhance on Export</span>
@@ -266,7 +364,7 @@ function showStudioModal(imageDataUrl, resolve, reject, options) {
             Cancel
           </button>
           <button type="button" id="studio-confirm-btn" class="flex-1 sm:flex-none px-6 py-3 bg-[#1A1A1A] hover:bg-[#C5A880] hover:text-[#1A1A1A] text-white text-xs uppercase tracking-widest font-bold rounded-xl transition-all duration-300 shadow-md focus:outline-none flex items-center justify-center gap-2 min-h-[44px]">
-            <span>Confirm &amp; Enhance</span>
+            <span id="studio-confirm-text">${isEnhanceChecked ? 'Confirm & Enhance' : 'Confirm & Upload'}</span>
             <span class="text-sm font-sans">&rarr;</span>
           </button>
         </div>

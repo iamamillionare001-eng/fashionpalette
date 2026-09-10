@@ -12,7 +12,16 @@ import {
   updateProductsSortOrderInCloud,
   uploadToImgBB 
 } from '../07-STORE_SETTINGS_AND_THEME_COLORS/firebase_sync.js';
-import { openImageCropperStudio, calculatePsychologicalPricing, openImageLightbox } from '../05-ADMIN_CONTROL_PANEL_AND_PRODUCTS/image_studio.js';
+import { 
+  openImageCropperStudio, 
+  calculatePsychologicalPricing, 
+  openImageLightbox,
+  processAndUploadProductImage,
+  isCropperEnabled,
+  isEnhancerEnabled,
+  setCropperEnabled,
+  setEnhancerEnabled
+} from '../05-ADMIN_CONTROL_PANEL_AND_PRODUCTS/image_studio.js';
 
 // Curated dropshipping apparel catalog for Ganesh Chaturthi and Festive 2026
 const DEFAULT_PRODUCTS = [
@@ -1122,6 +1131,57 @@ export function showQuickEditModal(product, onSaveCallback) {
         </div>
 
         <!-- ============================================================== -->
+        <!-- MEDIA PIPELINE & STUDIO TOGGLES TOOLBAR -->
+        <!-- ============================================================== -->
+        <div class="p-3 bg-gradient-to-r from-[#1A1A1A] via-stone-900 to-[#1A1A1A] text-[#F9F8F6] rounded-2xl border border-[#C5A880]/60 shadow-xs space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs">📸</span>
+              <h5 class="text-[9px] font-serif uppercase tracking-wider text-amber-200 font-bold">Media Upload Pipeline Controls</h5>
+            </div>
+            <span class="text-[7px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full bg-[#C5A880]/20 text-[#C5A880] border border-[#C5A880]/40">
+              Live Sync
+            </span>
+          </div>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <!-- Toggle A: Image Cropper -->
+            <label class="flex items-center justify-between p-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 cursor-pointer select-none transition-all">
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs">✂️</span>
+                <div>
+                  <p class="text-[9px] font-bold text-[#F9F8F6]">Enable Image Cropper</p>
+                  <p class="text-[7px] text-stone-400">Interactive 3:4 framing modal</p>
+                </div>
+              </div>
+              <input 
+                type="checkbox" 
+                id="qe-toggle-cropper" 
+                class="w-3.5 h-3.5 accent-[#C5A880] rounded cursor-pointer" 
+                ${isCropperEnabled() ? 'checked' : ''} 
+              />
+            </label>
+
+            <!-- Toggle B: Canvas Auto-Enhancer -->
+            <label class="flex items-center justify-between p-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 cursor-pointer select-none transition-all">
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs">✨</span>
+                <div>
+                  <p class="text-[9px] font-bold text-[#F9F8F6]">Enable Canvas Auto-Enhancer</p>
+                  <p class="text-[7px] text-stone-400">+8% contrast &amp; sharpening</p>
+                </div>
+              </div>
+              <input 
+                type="checkbox" 
+                id="qe-toggle-enhancer" 
+                class="w-3.5 h-3.5 accent-[#C5A880] rounded cursor-pointer" 
+                ${isEnhancerEnabled() ? 'checked' : ''} 
+              />
+            </label>
+          </div>
+        </div>
+
+        <!-- ============================================================== -->
         <!-- SECTION A: MAIN COVER IMAGE -->
         <!-- ============================================================== -->
         <div class="space-y-2.5 border-t border-[#E5E3DF]/60 pt-3">
@@ -1528,23 +1588,61 @@ export function showQuickEditModal(product, onSaveCallback) {
     });
   }
 
+  // Wire change listeners for Independent Toggles in Quick Edit Modal
+  const qeToggleCropper = modal.querySelector('#qe-toggle-cropper');
+  const qeToggleEnhancer = modal.querySelector('#qe-toggle-enhancer');
+
+  if (qeToggleCropper) {
+    qeToggleCropper.addEventListener('change', (e) => {
+      setCropperEnabled(e.target.checked);
+    });
+  }
+
+  if (qeToggleEnhancer) {
+    qeToggleEnhancer.addEventListener('change', (e) => {
+      setEnhancerEnabled(e.target.checked);
+    });
+  }
+
   async function handleModalMainImageFile(file) {
     if (!file) return;
     try {
-      const cdnUrl = await openImageCropperStudio(file);
+      const cdnUrl = await processAndUploadProductImage(file);
       if (cdnUrl) {
         uploadedModalMainImage = cdnUrl;
         mainImageChoice = cdnUrl;
         if (previewImg) previewImg.src = cdnUrl;
       }
     } catch (err) {
-      console.log("Quick Edit modal crop cancelled or error:", err);
+      console.log("Quick Edit modal image processing/upload cancelled or error:", err);
     }
   }
 
   if (fileInput) {
     fileInput.addEventListener('change', (e) => {
       if (e.target.files && e.target.files[0]) handleModalMainImageFile(e.target.files[0]);
+    });
+  }
+
+  if (dropzone) {
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropzone.classList.add('bg-[#C5A880]/10', 'border-[#C5A880]');
+      }, false);
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('bg-[#C5A880]/10', 'border-[#C5A880]');
+      }, false);
+    });
+    dropzone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt?.files;
+      if (files && files.length > 0) {
+        handleModalMainImageFile(files[0]);
+      }
     });
   }
 
@@ -1673,13 +1771,13 @@ export function showQuickEditModal(product, onSaveCallback) {
     if (!files || files.length === 0) return;
     for (let i = 0; i < files.length; i++) {
       try {
-        const uploadedUrl = await openImageCropperStudio(files[i]);
+        const uploadedUrl = await processAndUploadProductImage(files[i]);
         if (uploadedUrl) {
           galleryImages.push(uploadedUrl);
           renderGalleryThumbnailStrip();
         }
       } catch (err) {
-        console.log(`Gallery image ${i} crop cancelled or error:`, err);
+        console.log(`Gallery image ${i} processing/upload cancelled or error:`, err);
       }
     }
   }
@@ -1687,6 +1785,28 @@ export function showQuickEditModal(product, onSaveCallback) {
   if (galleryFileInput) {
     galleryFileInput.addEventListener('change', (e) => {
       if (e.target.files) handleGalleryFilesUpload(e.target.files);
+    });
+  }
+
+  if (galleryDropzone) {
+    ['dragenter', 'dragover'].forEach(eventName => {
+      galleryDropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        galleryDropzone.classList.add('bg-[#C5A880]/10', 'border-[#C5A880]');
+      }, false);
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+      galleryDropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        galleryDropzone.classList.remove('bg-[#C5A880]/10', 'border-[#C5A880]');
+      }, false);
+    });
+    galleryDropzone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt?.files;
+      if (files && files.length > 0) {
+        handleGalleryFilesUpload(files);
+      }
     });
   }
 
