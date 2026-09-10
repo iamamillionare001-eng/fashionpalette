@@ -127,9 +127,20 @@ export function initAdmin(containerId) {
 
   // Product creation form state (persists across re-renders within the admin session)
   const defaultApparelSizes = ["XS", "S", "M", "L", "XL", "XXL", "3XL", "Free Size"];
-  const defaultCoupleSizes = ["Women M / Men L", "Women L / Men XL", "Custom Pair"];
-  const selectedSizes = new Set(["M", "L", "XL"]); // default selections
-  const customSizes = []; // user added custom sizes
+  const defaultMenTopSizes = ["XS", "S", "M", "L", "XL", "2XL", "3XL"];
+  const defaultMenBottomSizes = ["28", "30", "32", "34", "36", "38", "S", "M", "L", "XL"];
+  const defaultWomenTopSizes = ["XS", "S", "M", "L", "XL", "2XL", "Free Size"];
+  const defaultWomenBottomSizes = ["XS", "S", "M", "L", "XL", "2XL", "Free Size"];
+
+  const selectedSizes = new Set(["M", "L", "XL"]); // default selections for individual items
+  const customSizes = []; // user added custom sizes for individual items
+
+  const selectedComboSizes = {
+    men_top: new Set(["M", "L", "XL"]),
+    men_bottom: new Set(["30", "32", "34", "36"]),
+    women_top: new Set(["S", "M", "L", "XL"]),
+    women_bottom: new Set(["S", "M", "L", "XL", "Free Size"])
+  };
   let uploadedMainImage = ""; 
   let uploadedGalleryImages = []; 
   let mainImageMode = "upload"; // "upload" | "url"
@@ -793,29 +804,84 @@ export function initAdmin(containerId) {
               </div>
             </div>
 
-            <!-- Size selection chips -->
-            <div class="space-y-3 border-t border-[#E5E3DF]/50 pt-3">
-              <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold">Sizes (Select Active Tags)</label>
+            <!-- Sizing Matrix (Dynamic Dual Matrix: Individual vs Twin Combo) -->
+            <div class="space-y-3 border-t border-[#E5E3DF]/50 pt-3" id="admin-sizing-wrapper">
               
-              <div>
-                <p class="text-[8px] uppercase tracking-widest text-[#8A8A8A] font-semibold mb-1">Standard Sizes</p>
-                <div class="flex flex-wrap gap-1.5" id="standard-sizes-chips"></div>
-              </div>
+              <!-- 1. Individual Unified Sizing Matrix -->
+              <div id="single-sizes-container" class="space-y-2.5">
+                <div class="flex items-center justify-between">
+                  <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold">Standard Sizing Matrix (Select Active Tags)</label>
+                  <span class="text-[8px] font-semibold text-stone-400 uppercase tracking-wider">Individual Item</span>
+                </div>
+                
+                <div>
+                  <div class="flex flex-wrap gap-1.5" id="standard-sizes-chips"></div>
+                </div>
 
-              <div>
-                <p class="text-[8px] uppercase tracking-widest text-[#8A8A8A] font-semibold mb-1">Couple / Pair Pre-sets</p>
-                <div class="flex flex-wrap gap-1.5" id="couple-sizes-chips"></div>
-              </div>
-
-              <div class="flex items-center gap-2 pt-1">
-                <button type="button" id="quick-add-size-btn" class="px-3.5 py-2.5 border border-[#C5A880] text-[#C5A880] hover:bg-[#C5A880] hover:text-[#1A1A1A] text-[9px] font-semibold uppercase tracking-widest rounded-xl transition-all duration-300 flex items-center gap-1.5 focus:outline-none min-h-[40px]">
-                  <span>+ Custom</span>
-                </button>
-                <div id="custom-size-input-wrapper" class="hidden flex items-center gap-2">
-                  <input type="text" id="custom-size-input" placeholder="e.g. 4XL" class="bg-[#F9F8F6] border border-[#C5A880] px-3 py-1.5 text-xs rounded-xl focus:outline-none w-24 h-[40px]" />
-                  <button type="button" id="confirm-custom-size-btn" class="px-3 py-2 bg-[#1A1A1A] text-white text-[10px] font-semibold uppercase tracking-widest rounded-xl hover:bg-[#C5A880] hover:text-[#1A1A1A] transition-all h-[40px]">Add</button>
+                <div class="flex items-center gap-2 pt-1">
+                  <button type="button" id="quick-add-size-btn" class="px-3.5 py-2.5 border border-[#C5A880] text-[#C5A880] hover:bg-[#C5A880] hover:text-[#1A1A1A] text-[9px] font-semibold uppercase tracking-widest rounded-xl transition-all duration-300 flex items-center gap-1.5 focus:outline-none min-h-[40px]">
+                    <span>+ Custom</span>
+                  </button>
+                  <div id="custom-size-input-wrapper" class="hidden flex items-center gap-2">
+                    <input type="text" id="custom-size-input" placeholder="e.g. 4XL" class="bg-[#F9F8F6] border border-[#C5A880] px-3 py-1.5 text-xs rounded-xl focus:outline-none w-24 h-[40px]" />
+                    <button type="button" id="confirm-custom-size-btn" class="px-3 py-2 bg-[#1A1A1A] text-white text-[10px] font-semibold uppercase tracking-widest rounded-xl hover:bg-[#C5A880] hover:text-[#1A1A1A] transition-all h-[40px]">Add</button>
+                  </div>
                 </div>
               </div>
+
+              <!-- 2. Granular 4-Piece Twin Combo Sizing Matrix -->
+              <div id="combo-sizes-container" class="hidden space-y-3.5 p-4 bg-stone-50 border border-[#C5A880]/40 rounded-2xl">
+                <div class="flex items-center justify-between border-b border-[#E5E3DF] pb-2">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs">👯</span>
+                    <h5 class="text-[10px] uppercase font-bold text-[#1A1A1A] tracking-wider">Granular 4-Piece Sizing Matrix</h5>
+                  </div>
+                  <span class="text-[8px] font-bold uppercase tracking-wider text-[#C5A880] bg-[#C5A880]/15 px-2.5 py-1 rounded-full border border-[#C5A880]/30">
+                    Twin Combo Active
+                  </span>
+                </div>
+
+                <!-- 1. Men's Top Sizes -->
+                <div class="space-y-1.5">
+                  <div class="flex items-center justify-between">
+                    <p class="text-[9px] uppercase tracking-wider font-bold text-[#1A1A1A] flex items-center gap-1.5">
+                      <span>👨</span> 1. Men's Top Sizes (Kurtas / Shirts)
+                    </p>
+                  </div>
+                  <div class="flex flex-wrap gap-1.5" id="combo-men-top-chips"></div>
+                </div>
+
+                <!-- 2. Men's Bottom Sizes -->
+                <div class="space-y-1.5 border-t border-[#E5E3DF]/50 pt-2.5">
+                  <div class="flex items-center justify-between">
+                    <p class="text-[9px] uppercase tracking-wider font-bold text-[#1A1A1A] flex items-center gap-1.5">
+                      <span>👨</span> 2. Men's Bottom Sizes (Pyjamas / Pants / Dhotis)
+                    </p>
+                  </div>
+                  <div class="flex flex-wrap gap-1.5" id="combo-men-bottom-chips"></div>
+                </div>
+
+                <!-- 3. Women's Top Sizes -->
+                <div class="space-y-1.5 border-t border-[#E5E3DF]/50 pt-2.5">
+                  <div class="flex items-center justify-between">
+                    <p class="text-[9px] uppercase tracking-wider font-bold text-[#1A1A1A] flex items-center gap-1.5">
+                      <span>👩</span> 3. Women's Top Sizes (Kurtis / Blouses / Tops)
+                    </p>
+                  </div>
+                  <div class="flex flex-wrap gap-1.5" id="combo-women-top-chips"></div>
+                </div>
+
+                <!-- 4. Women's Bottom Sizes -->
+                <div class="space-y-1.5 border-t border-[#E5E3DF]/50 pt-2.5">
+                  <div class="flex items-center justify-between">
+                    <p class="text-[9px] uppercase tracking-wider font-bold text-[#1A1A1A] flex items-center gap-1.5">
+                      <span>👩</span> 4. Women's Bottom Sizes (Skirts / Pants / Sarees)
+                    </p>
+                  </div>
+                  <div class="flex flex-wrap gap-1.5" id="combo-women-bottom-chips"></div>
+                </div>
+              </div>
+
             </div>
 
             <!-- Main Product Image -->
@@ -1205,7 +1271,7 @@ export function initAdmin(containerId) {
     `;
 
     // ==============================================================
-    // A. LINK INGESTION LOGIC
+    // A. LINK INGESTION LOGIC & FORMAT DUAL MATRIX SYNC
     // ==============================================================
     const ingestSingleRadio = tabContent.querySelector('#ingest-type-single');
     const ingestTwinRadio = tabContent.querySelector('#ingest-type-twin');
@@ -1214,18 +1280,54 @@ export function initAdmin(containerId) {
     const ingestBtn = tabContent.querySelector('#ingest-details-btn');
     const ingestStatus = tabContent.querySelector('#ingest-status-msg');
 
+    function updateSizingMatrixVisibility() {
+      const isTwin = ingestTwinRadio && ingestTwinRadio.checked;
+      const singleContainer = tabContent.querySelector('#single-sizes-container');
+      const comboContainer = tabContent.querySelector('#combo-sizes-container');
+
+      if (singleContainer && comboContainer) {
+        if (isTwin) {
+          singleContainer.classList.add('hidden');
+          comboContainer.classList.remove('hidden');
+          renderComboSizeChips();
+        } else {
+          comboContainer.classList.add('hidden');
+          singleContainer.classList.remove('hidden');
+          renderSizeChips();
+        }
+      }
+    }
+
     if (ingestSingleRadio && ingestTwinRadio && ingestSingleLinks && ingestTwinLinks) {
       ingestSingleRadio.addEventListener('change', () => {
         if (ingestSingleRadio.checked) {
           ingestSingleLinks.classList.remove('hidden');
           ingestTwinLinks.classList.add('hidden');
+          updateSizingMatrixVisibility();
         }
       });
       ingestTwinRadio.addEventListener('change', () => {
         if (ingestTwinRadio.checked) {
           ingestTwinLinks.classList.remove('hidden');
           ingestSingleLinks.classList.add('hidden');
+          updateSizingMatrixVisibility();
         }
+      });
+    }
+
+    const catSelectEl = tabContent.querySelector('#prod-category');
+    if (catSelectEl) {
+      catSelectEl.addEventListener('change', (e) => {
+        if (e.target.value === "Couple") {
+          if (ingestTwinRadio) ingestTwinRadio.checked = true;
+          if (ingestTwinLinks) ingestTwinLinks.classList.remove('hidden');
+          if (ingestSingleLinks) ingestSingleLinks.classList.add('hidden');
+        } else {
+          if (ingestSingleRadio) ingestSingleRadio.checked = true;
+          if (ingestSingleLinks) ingestSingleLinks.classList.remove('hidden');
+          if (ingestTwinLinks) ingestTwinLinks.classList.add('hidden');
+        }
+        updateSizingMatrixVisibility();
       });
     }
 
@@ -1290,19 +1392,27 @@ export function initAdmin(containerId) {
         if (badgeInput) badgeInput.value = isTwin ? "Matching Duo" : "Festive Pick";
 
         // Sizes preset selection
-        selectedSizes.clear();
         if (isTwin) {
-          selectedSizes.add("Women M / Men L");
-          selectedSizes.add("Women L / Men XL");
-        } else if (inferredCategory === "Women" && tokens.includes('saree')) {
-          selectedSizes.add("Free Size");
+          selectedComboSizes.men_top.clear();
+          ["M", "L", "XL"].forEach(s => selectedComboSizes.men_top.add(s));
+          selectedComboSizes.men_bottom.clear();
+          ["30", "32", "34", "36"].forEach(s => selectedComboSizes.men_bottom.add(s));
+          selectedComboSizes.women_top.clear();
+          ["S", "M", "L", "XL"].forEach(s => selectedComboSizes.women_top.add(s));
+          selectedComboSizes.women_bottom.clear();
+          ["S", "M", "L", "XL", "Free Size"].forEach(s => selectedComboSizes.women_bottom.add(s));
         } else {
-          selectedSizes.add("M");
-          selectedSizes.add("L");
-          selectedSizes.add("XL");
-          selectedSizes.add("XXL");
+          selectedSizes.clear();
+          if (inferredCategory === "Women" && tokens.includes('saree')) {
+            selectedSizes.add("Free Size");
+          } else {
+            selectedSizes.add("M");
+            selectedSizes.add("L");
+            selectedSizes.add("XL");
+            selectedSizes.add("XXL");
+          }
         }
-        renderSizeChips();
+        updateSizingMatrixVisibility();
 
         // Fabric details
         const fabricInput = tabContent.querySelector('#prod-fabric');
@@ -1385,17 +1495,17 @@ export function initAdmin(containerId) {
     if (bufferInput) bufferInput.addEventListener('input', recalculatePricing);
 
     // ==============================================================
-    // C. SIZE SELECTION PILLS & CHIPS
+    // C. SIZE SELECTION PILLS & DUAL MATRICES
     // ==============================================================
     function renderSizeChips() {
       const standardContainer = document.getElementById('standard-sizes-chips');
-      const coupleContainer = document.getElementById('couple-sizes-chips');
-      if (!standardContainer || !coupleContainer) return;
+      if (!standardContainer) return;
 
-      standardContainer.innerHTML = defaultApparelSizes.map(size => {
+      const allSingleSizes = [...defaultApparelSizes, ...customSizes];
+      standardContainer.innerHTML = allSingleSizes.map(size => {
         const isSelected = selectedSizes.has(size);
         return `
-          <button type="button" data-size="${size}" class="size-chip px-3.5 py-2.5 rounded-full text-[10px] font-semibold tracking-wider uppercase border transition-all duration-200 flex items-center gap-1 focus:outline-none min-h-[38px] ${
+          <button type="button" data-size="${size}" class="single-size-chip px-3.5 py-2.5 rounded-full text-[10px] font-semibold tracking-wider uppercase border transition-all duration-200 flex items-center gap-1 focus:outline-none min-h-[38px] ${
             isSelected
               ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]'
               : 'bg-white text-[#1A1A1A] border-[#E5E3DF] hover:border-[#1A1A1A]'
@@ -1405,22 +1515,7 @@ export function initAdmin(containerId) {
         `;
       }).join('');
 
-      const allCoupleAndCustom = [...defaultCoupleSizes, ...customSizes];
-      coupleContainer.innerHTML = allCoupleAndCustom.map(size => {
-        const isSelected = selectedSizes.has(size);
-        return `
-          <button type="button" data-size="${size}" class="size-chip px-3.5 py-2.5 rounded-full text-[10px] font-semibold tracking-wider uppercase border transition-all duration-200 flex items-center gap-1 focus:outline-none min-h-[38px] ${
-            isSelected
-              ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]'
-              : 'bg-white text-[#1A1A1A] border-[#E5E3DF] hover:border-[#1A1A1A]'
-          }">
-            ${isSelected ? '✓ ' : ''}${size}
-          </button>
-        `;
-      }).join('');
-
-      const chips = tabContent.querySelectorAll('.size-chip');
-      chips.forEach(chip => {
+      tabContent.querySelectorAll('.single-size-chip').forEach(chip => {
         chip.addEventListener('click', () => {
           const sz = chip.getAttribute('data-size');
           if (selectedSizes.has(sz)) {
@@ -1433,7 +1528,49 @@ export function initAdmin(containerId) {
       });
     }
 
-    renderSizeChips();
+    function renderComboSizeChips() {
+      const menTopEl = document.getElementById('combo-men-top-chips');
+      const menBottomEl = document.getElementById('combo-men-bottom-chips');
+      const womenTopEl = document.getElementById('combo-women-top-chips');
+      const womenBottomEl = document.getElementById('combo-women-bottom-chips');
+
+      if (!menTopEl || !menBottomEl || !womenTopEl || !womenBottomEl) return;
+
+      const renderCategory = (container, sizes, catKey) => {
+        container.innerHTML = sizes.map(size => {
+          const isSelected = selectedComboSizes[catKey].has(size);
+          return `
+            <button type="button" data-cat="${catKey}" data-size="${size}" class="combo-size-chip px-3 py-2 rounded-xl text-[10px] font-semibold tracking-wider uppercase border transition-all duration-200 flex items-center gap-1 focus:outline-none min-h-[36px] ${
+              isSelected
+                ? 'bg-[#1A1A1A] text-white border-[#1A1A1A] shadow-xs'
+                : 'bg-white text-[#1A1A1A] border-[#E5E3DF] hover:border-[#1A1A1A]'
+            }">
+              ${isSelected ? '✓ ' : ''}${size}
+            </button>
+          `;
+        }).join('');
+      };
+
+      renderCategory(menTopEl, defaultMenTopSizes, 'men_top');
+      renderCategory(menBottomEl, defaultMenBottomSizes, 'men_bottom');
+      renderCategory(womenTopEl, defaultWomenTopSizes, 'women_top');
+      renderCategory(womenBottomEl, defaultWomenBottomSizes, 'women_bottom');
+
+      tabContent.querySelectorAll('.combo-size-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const cat = chip.getAttribute('data-cat');
+          const sz = chip.getAttribute('data-size');
+          if (selectedComboSizes[cat].has(sz)) {
+            selectedComboSizes[cat].delete(sz);
+          } else {
+            selectedComboSizes[cat].add(sz);
+          }
+          renderComboSizeChips();
+        });
+      });
+    }
+
+    updateSizingMatrixVisibility();
 
     // Custom size quick-add
     const quickAddBtn = document.getElementById('quick-add-size-btn');
@@ -1450,7 +1587,7 @@ export function initAdmin(containerId) {
 
       confirmCustomBtn.addEventListener('click', () => {
         const val = customSizeInput.value.trim();
-        if (val && !defaultApparelSizes.includes(val) && !defaultCoupleSizes.includes(val) && !customSizes.includes(val)) {
+        if (val && !defaultApparelSizes.includes(val) && !customSizes.includes(val)) {
           customSizes.push(val);
           selectedSizes.add(val);
         }
@@ -1730,10 +1867,33 @@ export function initAdmin(containerId) {
         const description = document.getElementById('prod-desc').value.trim();
         const fabricDetails = document.getElementById('prod-fabric').value.trim() || "Premium luxury fabric. Delicate handling.";
 
-        const sizes = Array.from(selectedSizes);
-        if (sizes.length === 0) {
-          alert("⚠️ Please select at least one size tag!");
-          return;
+        const isTwin = ingestTwinRadio && ingestTwinRadio.checked;
+        let sizes = [];
+        let combo_sizes = null;
+
+        if (isTwin) {
+          if (
+            selectedComboSizes.men_top.size === 0 ||
+            selectedComboSizes.men_bottom.size === 0 ||
+            selectedComboSizes.women_top.size === 0 ||
+            selectedComboSizes.women_bottom.size === 0
+          ) {
+            alert("⚠️ Please select at least one active size in stock for all 4 categories (Men's Top, Men's Bottom, Women's Top, Women's Bottom)!");
+            return;
+          }
+          combo_sizes = {
+            men_top: Array.from(selectedComboSizes.men_top),
+            men_bottom: Array.from(selectedComboSizes.men_bottom),
+            women_top: Array.from(selectedComboSizes.women_top),
+            women_bottom: Array.from(selectedComboSizes.women_bottom)
+          };
+          sizes = ["Custom 4-Piece Combo"];
+        } else {
+          sizes = Array.from(selectedSizes);
+          if (sizes.length === 0) {
+            alert("⚠️ Please select at least one size tag!");
+            return;
+          }
         }
 
         let mainImage = "";
@@ -1768,7 +1928,6 @@ export function initAdmin(containerId) {
         const codAvailableInput = document.getElementById('prod-cod-available');
         const cod_available = codAvailableInput ? codAvailableInput.checked : false;
 
-        const isTwin = ingestTwinRadio && ingestTwinRadio.checked;
         let supplier_links = {};
         if (isTwin) {
           supplier_links = {
@@ -1789,6 +1948,7 @@ export function initAdmin(containerId) {
           title,
           category,
           is_combo: isTwin,
+          combo_sizes: combo_sizes,
           supplier_links,
           supplierCost,
           targetProfit,
@@ -2067,12 +2227,22 @@ export function initAdmin(containerId) {
                       </td>
                       <td class="py-4 max-w-[200px] pr-4">
                         <div class="space-y-1.5">
-                          ${order.items.map(item => `
-                            <div class="leading-tight">
-                              <p class="font-medium text-[#1A1A1A] truncate">${item.title}</p>
-                              <p class="text-[9px] text-[#8A8A8A] mt-0.5 uppercase tracking-widest font-semibold">Size: ${item.size} &bull; Qty: ${item.quantity}</p>
-                            </div>
-                          `).join('')}
+                          ${order.items.map(item => {
+                            const isCombo = item.is_combo || item.size?.includes("|") || Boolean(item.combo_size_breakdown);
+                            return `
+                              <div class="leading-tight">
+                                <div class="flex items-center gap-1.5">
+                                  <p class="font-medium text-[#1A1A1A] truncate">${item.title}</p>
+                                  ${isCombo ? `
+                                    <span class="text-[7px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-200 whitespace-nowrap">
+                                      4-Piece Combo
+                                    </span>
+                                  ` : ''}
+                                </div>
+                                <p class="text-[9px] text-[#5A5A5A] mt-0.5 font-medium leading-relaxed">${item.size} &bull; <span class="text-[#8A8A8A]">Qty: ${item.quantity}</span></p>
+                              </div>
+                            `;
+                          }).join('')}
                         </div>
                       </td>
                       <td class="py-4 text-[10px] uppercase tracking-wider font-medium text-[#1A1A1A] whitespace-nowrap pr-2">
@@ -2191,12 +2361,22 @@ export function initAdmin(containerId) {
                   <div class="bg-[#F9F8F6] p-3 rounded-xl border border-[#E5E3DF] space-y-2">
                     <p class="text-[9px] uppercase tracking-widest text-[#8A8A8A] font-bold">Ordered Items</p>
                     <div class="divide-y divide-[#E5E3DF]/60 text-xs">
-                      ${order.items.map(item => `
-                        <div class="py-1.5 first:pt-0 last:pb-0 leading-tight">
-                          <p class="font-medium text-[#1A1A1A]">${item.title}</p>
-                          <p class="text-[9px] text-[#8A8A8A] mt-0.5 uppercase tracking-widest font-semibold">Size: ${item.size} &bull; Qty: ${item.quantity}</p>
-                        </div>
-                      `).join('')}
+                      ${order.items.map(item => {
+                        const isCombo = item.is_combo || item.size?.includes("|") || Boolean(item.combo_size_breakdown);
+                        return `
+                          <div class="py-1.5 first:pt-0 last:pb-0 leading-tight">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                              <p class="font-medium text-[#1A1A1A]">${item.title}</p>
+                              ${isCombo ? `
+                                <span class="text-[7px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-200">
+                                  4-Piece Combo
+                                </span>
+                              ` : ''}
+                            </div>
+                            <p class="text-[9px] text-[#5A5A5A] mt-0.5 font-medium leading-relaxed">${item.size} &bull; <span class="text-[#8A8A8A]">Qty: ${item.quantity}</span></p>
+                          </div>
+                        `;
+                      }).join('')}
                     </div>
                   </div>
 
@@ -2698,11 +2878,11 @@ export function initAdmin(containerId) {
           const prod = cachedProducts.find(p => p.id === item.productId || p.id === item.id);
           const isCombo = (item.is_combo !== undefined)
             ? item.is_combo
-            : (prod?.is_combo === true || prod?.category === "Couple" || Boolean(prod?.supplier_links?.male_top) || item.size?.includes("/"));
+            : (prod?.is_combo === true || prod?.category === "Couple" || Boolean(prod?.supplier_links?.male_top) || item.size?.includes("|") || Boolean(item.combo_size_breakdown));
           
           const supplierLinks = item.supplier_links || prod?.supplier_links || {};
           const itemTitleAndSize = `${item.title} (Size: ${item.size || "Free Size"} x ${item.quantity || 1})`;
-          const prodType = isCombo ? "Twin Combo" : "Individual";
+          const prodType = isCombo ? "Twin Combo (4-Piece)" : "Individual";
 
           let maleTopOrTop = "";
           let maleBottomOrBottom = "";
@@ -2770,17 +2950,27 @@ export function initAdmin(containerId) {
       return;
     }
 
-    const itemsRows = order.items.map(item => `
-      <tr style="border-bottom: 1px solid #E5E3DF; font-size: 11px;">
-        <td style="padding: 12px 0; text-align: left; font-weight: 500; color: #1A1A1A;">
-          ${item.title}
-          <div style="font-size: 9px; color: #8A8A8A; text-transform: uppercase; margin-top: 2px;">Size: ${item.size}</div>
-        </td>
-        <td style="padding: 12px 0; text-align: center; color: #1A1A1A;">${item.quantity}</td>
-        <td style="padding: 12px 0; text-align: right; font-weight: bold; color: #1A1A1A;">₹${item.price.toLocaleString('en-IN')}</td>
-        <td style="padding: 12px 0; text-align: right; font-weight: bold; color: #1A1A1A;">₹${(item.price * item.quantity).toLocaleString('en-IN')}</td>
-      </tr>
-    `).join("");
+    const itemsRows = order.items.map(item => {
+      const isCombo = item.is_combo || item.size?.includes("|") || Boolean(item.combo_size_breakdown);
+      return `
+        <tr style="border-bottom: 1px solid #E5E3DF; font-size: 11px;">
+          <td style="padding: 12px 0; text-align: left; font-weight: 500; color: #1A1A1A;">
+            ${item.title}
+            ${isCombo ? `
+              <div style="font-size: 8px; color: #7A6030; background: #FFF8EE; border: 1px solid #E5D5BA; display: inline-block; padding: 1px 5px; border-radius: 4px; font-weight: bold; margin-top: 3px; text-transform: uppercase;">
+                Coordinated 4-Piece Twin Combo
+              </div>
+            ` : ''}
+            <div style="font-size: 9px; color: #5A5A5A; margin-top: 3px; font-weight: 500; line-height: 1.4;">
+              Size: ${item.size}
+            </div>
+          </td>
+          <td style="padding: 12px 0; text-align: center; color: #1A1A1A;">${item.quantity}</td>
+          <td style="padding: 12px 0; text-align: right; font-weight: bold; color: #1A1A1A;">₹${item.price.toLocaleString('en-IN')}</td>
+          <td style="padding: 12px 0; text-align: right; font-weight: bold; color: #1A1A1A;">₹${(item.price * item.quantity).toLocaleString('en-IN')}</td>
+        </tr>
+      `;
+    }).join("");
 
     const receiptHtml = `
       <!DOCTYPE html>

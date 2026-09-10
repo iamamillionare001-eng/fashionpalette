@@ -118,7 +118,13 @@ const DEFAULT_PRODUCTS = [
     badge: "Matching Duo",
     description: "Celebrate together in style with our matching festive sets. Features a coordinated maroon silk saree for her and a matching embroidered silk kurta set for him, crafted to perfection.",
     fabricDetails: "Saree: Chanderi Silk | Kurta: Art Silk. Dry clean recommended.",
-    sizes: ["Women M / Men L", "Women L / Men XL"],
+    sizes: ["Custom 4-Piece Combo"],
+    combo_sizes: {
+      men_top: ["M", "L", "XL", "2XL"],
+      men_bottom: ["30", "32", "34", "36", "L", "XL"],
+      women_top: ["XS", "S", "M", "L", "XL", "Free Size"],
+      women_bottom: ["XS", "S", "M", "L", "XL", "Free Size"]
+    },
     inStock: true,
     images: [
       "https://images.unsplash.com/photo-1621184455862-c163dfb30e0f?auto=format&fit=crop&w=800&q=80",
@@ -442,19 +448,36 @@ export function initGallery(containerId) {
                         </div>
                       </div>
 
-                      <!-- Size Selector inside Card (Clean horizontal scrolling on mobile, no overflow wrapping) -->
+                      <!-- Size Selector inside Card -->
                       <div class="mt-2.5 sm:mt-3.5 space-y-1">
-                        <p class="text-[8px] uppercase tracking-widest text-[#8A8A8A] font-semibold">Select Size</p>
-                        <div class="flex flex-nowrap sm:flex-wrap overflow-x-auto no-scrollbar gap-1 size-selector-container py-0.5 max-w-full">
-                          ${product.sizes.map((size) => `
-                            <button 
-                              class="size-pill flex-shrink-0 border border-[#E5E3DF] text-[8px] sm:text-[9px] uppercase font-medium px-2 py-1 rounded-md transition-all hover:border-[#1A1A1A] active:scale-95"
-                              data-size="${size}"
-                            >
-                              ${size}
-                            </button>
-                          `).join('')}
-                        </div>
+                        ${(product.is_combo || product.category === "Couple" || Boolean(product.combo_sizes)) ? `
+                          <div class="flex items-center justify-between">
+                            <p class="text-[8px] uppercase tracking-widest text-[#8A8A8A] font-semibold">4-Piece Sizing</p>
+                            <span class="text-[7.5px] uppercase font-bold text-[#C5A880] tracking-wider px-1.5 py-0.5 rounded bg-amber-500/10 border border-[#C5A880]/30">Twin Combo</span>
+                          </div>
+                          <button 
+                            type="button" 
+                            class="quick-view-btn w-full py-1.5 px-2 bg-stone-50 hover:bg-[#C5A880]/10 border border-[#E5E3DF] hover:border-[#C5A880] rounded-lg text-[9px] font-semibold text-[#1A1A1A] flex items-center justify-between transition-all cursor-pointer"
+                            title="Open Granular 4-Piece Sizing Selector"
+                          >
+                            <span class="flex items-center gap-1 truncate">
+                              <span>👨 Men &amp; 👩 Women</span>
+                            </span>
+                            <span class="text-[#C5A880] font-bold shrink-0">Select ↗</span>
+                          </button>
+                        ` : `
+                          <p class="text-[8px] uppercase tracking-widest text-[#8A8A8A] font-semibold">Select Size</p>
+                          <div class="flex flex-nowrap sm:flex-wrap overflow-x-auto no-scrollbar gap-1 size-selector-container py-0.5 max-w-full">
+                            ${(product.sizes || []).map((size) => `
+                              <button 
+                                class="size-pill flex-shrink-0 border border-[#E5E3DF] text-[8px] sm:text-[9px] uppercase font-medium px-2 py-1 rounded-md transition-all hover:border-[#1A1A1A] active:scale-95"
+                                data-size="${size}"
+                              >
+                                ${size}
+                              </button>
+                            `).join('')}
+                          </div>
+                        `}
                       </div>
 
                       <!-- Actions Row: Add to Bag (Charcoal + Champagne) & Circular Eye Preview -->
@@ -535,10 +558,17 @@ export function initGallery(containerId) {
       if (addToBagBtn) {
         addToBagBtn.addEventListener('click', (e) => {
           e.stopPropagation();
+
+          // If Twin Combo, open the preview modal directly so user can pick all 4 pieces
+          if (product.is_combo === true || product.category === "Couple" || Boolean(product.combo_sizes)) {
+            showQuickViewModal(product);
+            return;
+          }
+
           const activePill = card.querySelector('.size-pill.active');
           let selectedSize = activePill ? activePill.dataset.size : null;
 
-          if (!selectedSize && product.sizes.length === 1) {
+          if (!selectedSize && product.sizes && product.sizes.length === 1) {
             selectedSize = product.sizes[0];
           }
 
@@ -813,9 +843,21 @@ export function showQuickEditModal(product, onSaveCallback) {
   modal.className = 'fixed inset-0 z-[100] flex items-center justify-center bg-[#1A1A1A]/80 backdrop-blur-md p-4 transition-all duration-300 opacity-0 overflow-y-auto';
 
   const defaultApparelSizes = ["XS", "S", "M", "L", "XL", "XXL", "3XL", "Free Size"];
-  const defaultCoupleSizes = ["Women M / Men L", "Women L / Men XL", "Custom Pair"];
+  const defaultMenTopSizes = ["XS", "S", "M", "L", "XL", "2XL", "3XL"];
+  const defaultMenBottomSizes = ["28", "30", "32", "34", "36", "38", "S", "M", "L", "XL"];
+  const defaultWomenTopSizes = ["XS", "S", "M", "L", "XL", "2XL", "Free Size"];
+  const defaultWomenBottomSizes = ["XS", "S", "M", "L", "XL", "2XL", "Free Size"];
+
   const modalSelectedSizes = new Set(product.sizes || ["Free Size"]);
-  const modalCustomSizes = (product.sizes || []).filter(s => !defaultApparelSizes.includes(s) && !defaultCoupleSizes.includes(s));
+  const modalCustomSizes = (product.sizes || []).filter(s => !defaultApparelSizes.includes(s));
+
+  const existingCombo = product.combo_sizes || {};
+  const modalComboSizes = {
+    men_top: new Set((existingCombo.men_top && existingCombo.men_top.length > 0) ? existingCombo.men_top : ["M", "L", "XL"]),
+    men_bottom: new Set((existingCombo.men_bottom && existingCombo.men_bottom.length > 0) ? existingCombo.men_bottom : ["30", "32", "34", "36"]),
+    women_top: new Set((existingCombo.women_top && existingCombo.women_top.length > 0) ? existingCombo.women_top : ["S", "M", "L", "XL"]),
+    women_bottom: new Set((existingCombo.women_bottom && existingCombo.women_bottom.length > 0) ? existingCombo.women_bottom : ["S", "M", "L", "XL", "Free Size"])
+  };
 
   // Initialize media state
   const rawImages = (product.images && product.images.length > 0) 
@@ -1011,19 +1053,72 @@ export function showQuickEditModal(product, onSaveCallback) {
           </div>
         </div>
 
-        <!-- Sizes Multi-select Chips -->
-        <div class="space-y-2 border-t border-[#E5E3DF]/60 pt-3">
-          <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold">Sizes (Select Active Tags)</label>
-          <div class="flex flex-wrap gap-1.5" id="qe-sizes-container"></div>
-          <div class="flex items-center gap-2 pt-1">
-            <button type="button" id="qe-add-custom-size-btn" class="px-3 py-1.5 border border-[#C5A880] text-[#C5A880] hover:bg-[#C5A880] hover:text-[#1A1A1A] text-[9px] font-semibold uppercase tracking-wider rounded-lg transition-all">
-              + Custom Size
-            </button>
-            <div id="qe-custom-size-wrapper" class="hidden flex items-center gap-2">
-              <input type="text" id="qe-custom-size-input" placeholder="e.g. 4XL" class="bg-[#F9F8F6] border border-[#C5A880] px-2.5 py-1 text-xs rounded-lg focus:outline-none w-24" />
-              <button type="button" id="qe-confirm-custom-size-btn" class="px-3 py-1 bg-[#1A1A1A] text-white text-[9px] font-semibold uppercase tracking-wider rounded-lg hover:bg-[#C5A880] hover:text-[#1A1A1A]">Add</button>
+        <!-- Sizing Section (Dynamic Dual Matrices: Individual vs Twin Combo) -->
+        <div class="space-y-3 border-t border-[#E5E3DF]/60 pt-3">
+          
+          <!-- 1. Individual Sizes Section -->
+          <div id="qe-single-sizes-section" class="${isComboChoice ? 'hidden' : ''} space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold">Standard Sizing Matrix (Select Active Tags)</label>
+              <span class="text-[8px] font-semibold text-stone-400 uppercase tracking-wider">Individual Format</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5" id="qe-sizes-container"></div>
+            <div class="flex items-center gap-2 pt-1">
+              <button type="button" id="qe-add-custom-size-btn" class="px-3 py-1.5 border border-[#C5A880] text-[#C5A880] hover:bg-[#C5A880] hover:text-[#1A1A1A] text-[9px] font-semibold uppercase tracking-wider rounded-lg transition-all">
+                + Custom Size
+              </button>
+              <div id="qe-custom-size-wrapper" class="hidden flex items-center gap-2">
+                <input type="text" id="qe-custom-size-input" placeholder="e.g. 4XL" class="bg-[#F9F8F6] border border-[#C5A880] px-2.5 py-1 text-xs rounded-lg focus:outline-none w-24" />
+                <button type="button" id="qe-confirm-custom-size-btn" class="px-3 py-1 bg-[#1A1A1A] text-white text-[9px] font-semibold uppercase tracking-wider rounded-lg hover:bg-[#C5A880] hover:text-[#1A1A1A]">Add</button>
+              </div>
             </div>
           </div>
+
+          <!-- 2. Granular 4-Piece Twin Combo Sizing Section -->
+          <div id="qe-combo-sizes-section" class="${!isComboChoice ? 'hidden' : ''} space-y-3.5 p-4 bg-stone-50 border border-[#C5A880]/40 rounded-2xl">
+            <div class="flex items-center justify-between border-b border-[#E5E3DF] pb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xs">👯</span>
+                <h5 class="text-[10px] uppercase font-bold text-[#1A1A1A] tracking-wider">Granular 4-Piece Sizing Matrix</h5>
+              </div>
+              <span class="text-[8px] font-bold uppercase tracking-wider text-[#C5A880] bg-[#C5A880]/15 px-2.5 py-1 rounded-full border border-[#C5A880]/30">
+                Twin Combo Active
+              </span>
+            </div>
+
+            <!-- 1. Men's Top Sizes -->
+            <div class="space-y-1.5">
+              <p class="text-[9px] uppercase tracking-wider font-bold text-[#1A1A1A] flex items-center gap-1.5">
+                <span>👨</span> 1. Men's Top Sizes (Kurtas / Shirts)
+              </p>
+              <div class="flex flex-wrap gap-1.5" id="qe-combo-men-top"></div>
+            </div>
+
+            <!-- 2. Men's Bottom Sizes -->
+            <div class="space-y-1.5 border-t border-[#E5E3DF]/50 pt-2.5">
+              <p class="text-[9px] uppercase tracking-wider font-bold text-[#1A1A1A] flex items-center gap-1.5">
+                <span>👨</span> 2. Men's Bottom Sizes (Pyjamas / Pants / Dhotis)
+              </p>
+              <div class="flex flex-wrap gap-1.5" id="qe-combo-men-bottom"></div>
+            </div>
+
+            <!-- 3. Women's Top Sizes -->
+            <div class="space-y-1.5 border-t border-[#E5E3DF]/50 pt-2.5">
+              <p class="text-[9px] uppercase tracking-wider font-bold text-[#1A1A1A] flex items-center gap-1.5">
+                <span>👩</span> 3. Women's Top Sizes (Kurtis / Blouses / Tops)
+              </p>
+              <div class="flex flex-wrap gap-1.5" id="qe-combo-women-top"></div>
+            </div>
+
+            <!-- 4. Women's Bottom Sizes -->
+            <div class="space-y-1.5 border-t border-[#E5E3DF]/50 pt-2.5">
+              <p class="text-[9px] uppercase tracking-wider font-bold text-[#1A1A1A] flex items-center gap-1.5">
+                <span>👩</span> 4. Women's Bottom Sizes (Skirts / Pants / Sarees)
+              </p>
+              <div class="flex flex-wrap gap-1.5" id="qe-combo-women-bottom"></div>
+            </div>
+          </div>
+
         </div>
 
         <!-- ============================================================== -->
@@ -1230,26 +1325,43 @@ export function showQuickEditModal(product, onSaveCallback) {
     });
   }
 
-  // Supplier Links Toggle (Single Item vs Twin Combo)
+  // Supplier Links & Sizing Toggle (Single Item vs Twin Combo)
   const qeTypeSingle = modal.querySelector('#qe-type-single');
   const qeTypeTwin = modal.querySelector('#qe-type-twin');
   const qeSingleFields = modal.querySelector('#qe-supplier-single-fields');
   const qeTwinFields = modal.querySelector('#qe-supplier-twin-fields');
   const qeCategorySelect = modal.querySelector('#qe-category');
 
-  if (qeTypeSingle && qeTypeTwin && qeSingleFields && qeTwinFields) {
+  function updateModalSizingVisibility() {
+    const singleSizesSec = modal.querySelector('#qe-single-sizes-section');
+    const comboSizesSec = modal.querySelector('#qe-combo-sizes-section');
+
+    if (isComboChoice) {
+      if (singleSizesSec) singleSizesSec.classList.add('hidden');
+      if (comboSizesSec) comboSizesSec.classList.remove('hidden');
+      if (qeSingleFields) qeSingleFields.classList.add('hidden');
+      if (qeTwinFields) qeTwinFields.classList.remove('hidden');
+      renderModalComboSizeChips();
+    } else {
+      if (singleSizesSec) singleSizesSec.classList.remove('hidden');
+      if (comboSizesSec) comboSizesSec.classList.add('hidden');
+      if (qeSingleFields) qeSingleFields.classList.remove('hidden');
+      if (qeTwinFields) qeTwinFields.classList.add('hidden');
+      renderModalSizeChips();
+    }
+  }
+
+  if (qeTypeSingle && qeTypeTwin) {
     qeTypeSingle.addEventListener('change', () => {
       if (qeTypeSingle.checked) {
         isComboChoice = false;
-        qeSingleFields.classList.remove('hidden');
-        qeTwinFields.classList.add('hidden');
+        updateModalSizingVisibility();
       }
     });
     qeTypeTwin.addEventListener('change', () => {
       if (qeTypeTwin.checked) {
         isComboChoice = true;
-        qeTwinFields.classList.remove('hidden');
-        qeSingleFields.classList.add('hidden');
+        updateModalSizingVisibility();
       }
     });
   }
@@ -1257,21 +1369,21 @@ export function showQuickEditModal(product, onSaveCallback) {
   if (qeCategorySelect) {
     qeCategorySelect.addEventListener('change', (e) => {
       if (e.target.value === "Couple") {
-        if (qeTypeTwin) {
-          qeTypeTwin.checked = true;
-          isComboChoice = true;
-          if (qeTwinFields) qeTwinFields.classList.remove('hidden');
-          if (qeSingleFields) qeSingleFields.classList.add('hidden');
-        }
+        if (qeTypeTwin) qeTypeTwin.checked = true;
+        isComboChoice = true;
+      } else {
+        if (qeTypeSingle) qeTypeSingle.checked = true;
+        isComboChoice = false;
       }
+      updateModalSizingVisibility();
     });
   }
 
-  // Render Size chips inside quick-edit modal
+  // Render Single Size chips inside quick-edit modal
   function renderModalSizeChips() {
     const sizesContainer = modal.querySelector('#qe-sizes-container');
     if (!sizesContainer) return;
-    const allSizes = Array.from(new Set([...defaultApparelSizes, ...defaultCoupleSizes, ...modalCustomSizes]));
+    const allSizes = Array.from(new Set([...defaultApparelSizes, ...modalCustomSizes]));
 
     sizesContainer.innerHTML = allSizes.map(sz => {
       const isSel = modalSelectedSizes.has(sz);
@@ -1297,7 +1409,50 @@ export function showQuickEditModal(product, onSaveCallback) {
     });
   }
 
-  renderModalSizeChips();
+  // Render Granular 4-Piece Twin Combo Size chips inside quick-edit modal
+  function renderModalComboSizeChips() {
+    const menTopEl = modal.querySelector('#qe-combo-men-top');
+    const menBottomEl = modal.querySelector('#qe-combo-men-bottom');
+    const womenTopEl = modal.querySelector('#qe-combo-women-top');
+    const womenBottomEl = modal.querySelector('#qe-combo-women-bottom');
+
+    if (!menTopEl || !menBottomEl || !womenTopEl || !womenBottomEl) return;
+
+    const renderCategory = (container, sizes, catKey) => {
+      container.innerHTML = sizes.map(sz => {
+        const isSelected = modalComboSizes[catKey].has(sz);
+        return `
+          <button type="button" data-modal-cat="${catKey}" data-modal-size="${sz}" class="qe-combo-chip px-2.5 py-1.5 rounded-xl text-[10px] font-semibold tracking-wider uppercase border transition-all duration-200 flex items-center gap-1 focus:outline-none ${
+            isSelected
+              ? 'bg-[#1A1A1A] text-white border-[#1A1A1A] shadow-xs'
+              : 'bg-white text-[#1A1A1A] border-[#E5E3DF] hover:border-[#1A1A1A]'
+          }">
+            ${isSelected ? '✓ ' : ''}${sz}
+          </button>
+        `;
+      }).join('');
+    };
+
+    renderCategory(menTopEl, defaultMenTopSizes, 'men_top');
+    renderCategory(menBottomEl, defaultMenBottomSizes, 'men_bottom');
+    renderCategory(womenTopEl, defaultWomenTopSizes, 'women_top');
+    renderCategory(womenBottomEl, defaultWomenBottomSizes, 'women_bottom');
+
+    modal.querySelectorAll('.qe-combo-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const cat = chip.getAttribute('data-modal-cat');
+        const sz = chip.getAttribute('data-modal-size');
+        if (modalComboSizes[cat].has(sz)) {
+          modalComboSizes[cat].delete(sz);
+        } else {
+          modalComboSizes[cat].add(sz);
+        }
+        renderModalComboSizeChips();
+      });
+    });
+  }
+
+  updateModalSizingVisibility();
 
   // Custom size adder inside modal
   const addCustomBtn = modal.querySelector('#qe-add-custom-size-btn');
@@ -1571,9 +1726,33 @@ export function showQuickEditModal(product, onSaveCallback) {
       const description = modal.querySelector('#qe-desc').value.trim();
       const fabricDetails = modal.querySelector('#qe-fabric').value.trim();
 
-      if (modalSelectedSizes.size === 0) {
-        alert("⚠️ Please select at least one size tag!");
-        return;
+      const isTwin = modal.querySelector('#qe-type-twin')?.checked === true;
+      let finalSizes = [];
+      let finalComboSizes = null;
+
+      if (isTwin) {
+        if (
+          modalComboSizes.men_top.size === 0 ||
+          modalComboSizes.men_bottom.size === 0 ||
+          modalComboSizes.women_top.size === 0 ||
+          modalComboSizes.women_bottom.size === 0
+        ) {
+          alert("⚠️ Please select at least one active size in stock for all 4 categories (Men's Top, Men's Bottom, Women's Top, Women's Bottom) in the Twin Combo sizing matrix!");
+          return;
+        }
+        finalComboSizes = {
+          men_top: Array.from(modalComboSizes.men_top),
+          men_bottom: Array.from(modalComboSizes.men_bottom),
+          women_top: Array.from(modalComboSizes.women_top),
+          women_bottom: Array.from(modalComboSizes.women_bottom)
+        };
+        finalSizes = ["Custom 4-Piece Combo"];
+      } else {
+        if (modalSelectedSizes.size === 0) {
+          alert("⚠️ Please select at least one size tag!");
+          return;
+        }
+        finalSizes = Array.from(modalSelectedSizes);
       }
 
       let finalMainImage = mainImageChoice;
@@ -1587,7 +1766,6 @@ export function showQuickEditModal(product, onSaveCallback) {
       const finalImages = [finalMainImage, ...galleryImages];
       const discountPercentage = Math.round(((originalPrice - price) / originalPrice) * 100);
 
-      const isTwin = modal.querySelector('#qe-type-twin')?.checked === true;
       let supplier_links = {};
       if (isTwin) {
         supplier_links = {
@@ -1608,6 +1786,7 @@ export function showQuickEditModal(product, onSaveCallback) {
         title,
         category,
         is_combo: isTwin,
+        combo_sizes: finalComboSizes,
         supplier_links,
         supplierCost,
         targetProfit,
@@ -1620,7 +1799,7 @@ export function showQuickEditModal(product, onSaveCallback) {
         cod_available: isCodAvailableChoice,
         description,
         fabricDetails,
-        sizes: Array.from(modalSelectedSizes),
+        sizes: finalSizes,
         images: finalImages,
         image: finalMainImage
       };
@@ -1683,6 +1862,15 @@ export function showQuickViewModal(product) {
   let currentReviews = (product.reviews && product.reviews.length > 0) ? [...product.reviews] : defaultReviews;
   let currentActiveImage = images[0];
 
+  const isCombo = (product.is_combo === true) || (product.category === "Couple") || Boolean(product.combo_sizes);
+  const existingCombo = product.combo_sizes || {};
+  const comboSizes = {
+    men_top: (existingCombo.men_top && existingCombo.men_top.length > 0) ? existingCombo.men_top : ["M", "L", "XL"],
+    men_bottom: (existingCombo.men_bottom && existingCombo.men_bottom.length > 0) ? existingCombo.men_bottom : ["30", "32", "34", "36"],
+    women_top: (existingCombo.women_top && existingCombo.women_top.length > 0) ? existingCombo.women_top : ["S", "M", "L", "XL"],
+    women_bottom: (existingCombo.women_bottom && existingCombo.women_bottom.length > 0) ? existingCombo.women_bottom : ["S", "M", "L", "XL", "Free Size"]
+  };
+
   modal.innerHTML = `
     <div class="bg-white rounded-3xl border border-[#E5E3DF] max-w-4xl w-full max-h-[92vh] overflow-y-auto shadow-2xl relative flex flex-col md:grid md:grid-cols-12 transform scale-95 opacity-0 transition-all duration-300" id="qv-modal-card">
       <!-- Close Button -->
@@ -1708,6 +1896,11 @@ export function showQuickViewModal(product) {
             <span class="inline-flex items-center text-[9px] uppercase tracking-[0.18em] font-medium px-2.5 py-1 rounded-full border shadow-sm" style="background: rgba(18, 16, 14, 0.7); backdrop-filter: blur(8px); color: #E5D5BA; border-color: rgba(229, 213, 186, 0.35);">
               ${product.category}
             </span>
+            ${isCombo ? `
+              <span class="inline-flex items-center text-[9px] uppercase tracking-[0.18em] font-medium px-2.5 py-1 rounded-full border shadow-sm" style="background: rgba(18, 16, 14, 0.85); backdrop-filter: blur(8px); color: #F5DCA8; border-color: rgba(245, 220, 168, 0.5);">
+                👯 4-Piece Twin Combo
+              </span>
+            ` : ''}
             ${product.featured ? `
               <span class="inline-flex items-center text-[9px] uppercase tracking-[0.18em] font-medium px-2.5 py-1 rounded-full border shadow-sm" style="background: rgba(18, 16, 14, 0.7); backdrop-filter: blur(8px); color: #E5D5BA; border-color: rgba(229, 213, 186, 0.35);">
                 ⭐ Featured
@@ -1769,23 +1962,115 @@ export function showQuickViewModal(product) {
             <p class="leading-relaxed font-medium">Dispatched in 24–48 Hours &bull; Delivery in 4–7 Days &bull; ${product.cod_available === true ? 'Cash on Delivery Available' : 'Prepaid Express Only'}</p>
           </div>
 
-          <!-- Sizes Selection -->
-          <div class="space-y-2 border-t border-[#E5E3DF]/70 pt-3">
-            <div class="flex justify-between items-center text-[10px] uppercase tracking-wider font-semibold text-[#1A1A1A]">
-              <span>Select Size</span>
-              <span id="qv-selected-size-text" class="text-[#C5A880] normal-case font-normal font-sans">Select a size</span>
-            </div>
-            
-            <div class="flex flex-wrap gap-2" id="qv-size-container">
-              ${product.sizes.map((size) => `
-                <button 
-                  class="qv-size-chip border border-[#E5E3DF] text-xs font-semibold px-4 py-2 rounded-xl transition-all hover:border-[#1A1A1A] cursor-pointer"
-                  data-size="${size}"
-                >
-                  ${size}
-                </button>
-              `).join('')}
-            </div>
+          <!-- Sizing Selection Section (Dynamic: 4-Piece Twin Combo vs Standard Single) -->
+          <div class="space-y-3 border-t border-[#E5E3DF]/70 pt-3" id="qv-sizing-block">
+            ${isCombo ? `
+              <!-- Twin Combo 4-Piece Sizing Matrices -->
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs">👯</span>
+                    <span class="text-[10px] uppercase tracking-wider font-bold text-[#1A1A1A]">Select 4-Piece Coordinated Sizes</span>
+                  </div>
+                  <span id="qv-combo-progress-badge" class="text-[8px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-300 transition-all">
+                    0/4 Selected
+                  </span>
+                </div>
+
+                <!-- 1. Men's Top -->
+                <div class="space-y-1.5 p-3 bg-[#FAF9F7] rounded-xl border border-[#E5E3DF]/80" id="qv-strip-men-top">
+                  <div class="flex justify-between items-center text-[10px]">
+                    <span class="font-bold text-[#1A1A1A] flex items-center gap-1">
+                      <span>👨</span> 1. Select Men's Top Size (Kurta / Shirt)
+                    </span>
+                    <span class="text-[9px] text-[#C5A880] font-semibold qv-sel-indicator" id="qv-sel-men-top">Select size</span>
+                  </div>
+                  <div class="flex flex-wrap gap-1.5">
+                    ${comboSizes.men_top.map(sz => `
+                      <button type="button" class="qv-combo-size-chip qv-chip-men-top border border-[#E5E3DF] bg-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-all hover:border-[#1A1A1A] cursor-pointer" data-combo-cat="men_top" data-combo-size="${sz}">
+                        ${sz}
+                      </button>
+                    `).join('')}
+                  </div>
+                </div>
+
+                <!-- 2. Men's Bottom -->
+                <div class="space-y-1.5 p-3 bg-[#FAF9F7] rounded-xl border border-[#E5E3DF]/80" id="qv-strip-men-bottom">
+                  <div class="flex justify-between items-center text-[10px]">
+                    <span class="font-bold text-[#1A1A1A] flex items-center gap-1">
+                      <span>👨</span> 2. Select Men's Bottom Size (Pyjama / Pant)
+                    </span>
+                    <span class="text-[9px] text-[#C5A880] font-semibold qv-sel-indicator" id="qv-sel-men-bottom">Select size</span>
+                  </div>
+                  <div class="flex flex-wrap gap-1.5">
+                    ${comboSizes.men_bottom.map(sz => `
+                      <button type="button" class="qv-combo-size-chip qv-chip-men-bottom border border-[#E5E3DF] bg-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-all hover:border-[#1A1A1A] cursor-pointer" data-combo-cat="men_bottom" data-combo-size="${sz}">
+                        ${sz}
+                      </button>
+                    `).join('')}
+                  </div>
+                </div>
+
+                <!-- 3. Women's Top -->
+                <div class="space-y-1.5 p-3 bg-[#FAF9F7] rounded-xl border border-[#E5E3DF]/80" id="qv-strip-women-top">
+                  <div class="flex justify-between items-center text-[10px]">
+                    <span class="font-bold text-[#1A1A1A] flex items-center gap-1">
+                      <span>👩</span> 3. Select Women's Top Size (Kurti / Blouse)
+                    </span>
+                    <span class="text-[9px] text-[#C5A880] font-semibold qv-sel-indicator" id="qv-sel-women-top">Select size</span>
+                  </div>
+                  <div class="flex flex-wrap gap-1.5">
+                    ${comboSizes.women_top.map(sz => `
+                      <button type="button" class="qv-combo-size-chip qv-chip-women-top border border-[#E5E3DF] bg-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-all hover:border-[#1A1A1A] cursor-pointer" data-combo-cat="women_top" data-combo-size="${sz}">
+                        ${sz}
+                      </button>
+                    `).join('')}
+                  </div>
+                </div>
+
+                <!-- 4. Women's Bottom -->
+                <div class="space-y-1.5 p-3 bg-[#FAF9F7] rounded-xl border border-[#E5E3DF]/80" id="qv-strip-women-bottom">
+                  <div class="flex justify-between items-center text-[10px]">
+                    <span class="font-bold text-[#1A1A1A] flex items-center gap-1">
+                      <span>👩</span> 4. Select Women's Bottom Size (Skirt / Pant / Saree)
+                    </span>
+                    <span class="text-[9px] text-[#C5A880] font-semibold qv-sel-indicator" id="qv-sel-women-bottom">Select size</span>
+                  </div>
+                  <div class="flex flex-wrap gap-1.5">
+                    ${comboSizes.women_bottom.map(sz => `
+                      <button type="button" class="qv-combo-size-chip qv-chip-women-bottom border border-[#E5E3DF] bg-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-all hover:border-[#1A1A1A] cursor-pointer" data-combo-cat="women_bottom" data-combo-size="${sz}">
+                        ${sz}
+                      </button>
+                    `).join('')}
+                  </div>
+                </div>
+
+                <!-- Sizing Summary Box -->
+                <div class="p-2.5 bg-amber-50/50 border border-amber-200/60 rounded-xl text-[9px] text-[#7A6030] leading-snug">
+                  <span class="font-bold uppercase tracking-wider">Selection:</span>
+                  <span id="qv-combo-summary-text" class="ml-1 font-medium text-[#1A1A1A]">Please select sizes for all 4 pieces</span>
+                </div>
+              </div>
+            ` : `
+              <!-- Standard Single Size Selection -->
+              <div class="space-y-2">
+                <div class="flex justify-between items-center text-[10px] uppercase tracking-wider font-semibold text-[#1A1A1A]">
+                  <span>Select Size</span>
+                  <span id="qv-selected-size-text" class="text-[#C5A880] normal-case font-normal font-sans">Select a size</span>
+                </div>
+                
+                <div class="flex flex-wrap gap-2" id="qv-size-container">
+                  ${product.sizes.map((size) => `
+                    <button 
+                      class="qv-size-chip border border-[#E5E3DF] text-xs font-semibold px-4 py-2 rounded-xl transition-all hover:border-[#1A1A1A] cursor-pointer"
+                      data-size="${size}"
+                    >
+                      ${size}
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+            `}
           </div>
 
           <!-- Quantity and Add to Bag Row -->
@@ -1817,7 +2102,7 @@ export function showQuickViewModal(product) {
             <div class="border border-[#E5E3DF] rounded-xl overflow-hidden bg-white">
               <button type="button" class="qv-accordion-btn w-full px-4 py-3 text-left text-xs uppercase tracking-wider font-bold text-[#1A1A1A] flex items-center justify-between hover:bg-stone-50 transition-colors focus:outline-none" data-accordion-target="fabric-care">
                 <span class="flex items-center gap-2">
-                  <span>🧵</span> Fabric & Care Instructions
+                  <span>🧵</span> Fabric &amp; Care Instructions
                 </span>
                 <span class="accordion-arrow text-stone-400 font-normal transition-transform duration-200">▼</span>
               </button>
@@ -1831,7 +2116,7 @@ export function showQuickViewModal(product) {
             <div class="border border-[#E5E3DF] rounded-xl overflow-hidden bg-white">
               <button type="button" class="qv-accordion-btn w-full px-4 py-3 text-left text-xs uppercase tracking-wider font-bold text-[#1A1A1A] flex items-center justify-between hover:bg-stone-50 transition-colors focus:outline-none" data-accordion-target="size-fit">
                 <span class="flex items-center gap-2">
-                  <span>📏</span> Size & Fit Guidance
+                  <span>📏</span> Size &amp; Fit Guidance
                 </span>
                 <span class="accordion-arrow text-stone-400 font-normal transition-transform duration-200">▼</span>
               </button>
@@ -1848,12 +2133,12 @@ export function showQuickViewModal(product) {
             <div class="border border-[#E5E3DF] rounded-xl overflow-hidden bg-white">
               <button type="button" class="qv-accordion-btn w-full px-4 py-3 text-left text-xs uppercase tracking-wider font-bold text-[#1A1A1A] flex items-center justify-between hover:bg-stone-50 transition-colors focus:outline-none" data-accordion-target="shipping-cod">
                 <span class="flex items-center gap-2">
-                  <span>🚚</span> Pan-India Shipping & COD Details
+                  <span>🚚</span> Pan-India Shipping &amp; COD Details
                 </span>
                 <span class="accordion-arrow text-stone-400 font-normal transition-transform duration-200">▼</span>
               </button>
               <div id="acc-shipping-cod" class="hidden px-4 pb-3.5 pt-1 text-xs text-[#5A5A5A] space-y-1.5 border-t border-[#E5E3DF]/50 bg-[#FAF9F7]">
-                <p class="font-light leading-relaxed">We provide insured express courier delivery across all 28 states & UTs:</p>
+                <p class="font-light leading-relaxed">We provide insured express courier delivery across all 28 states &amp; UTs:</p>
                 <ul class="list-disc pl-4 space-y-1 text-[11px]">
                   <li><strong>Fast Dispatch:</strong> Dispatched from atelier in 24–48 hours.</li>
                   ${product.cod_available === true ? `
@@ -1960,8 +2245,6 @@ export function showQuickViewModal(product) {
   const closeBtn = document.getElementById('qv-close-btn');
   const qvMainImg = document.getElementById('qv-main-img');
   const qvThumbBtns = modal.querySelectorAll('.qv-thumb-btn');
-  const qvSizeChips = modal.querySelectorAll('.qv-size-chip');
-  const selectedSizeText = document.getElementById('qv-selected-size-text');
   const qtyVal = document.getElementById('qv-qty-val');
   const qtyInc = document.getElementById('qv-qty-inc');
   const qtyDec = document.getElementById('qv-qty-dec');
@@ -1969,14 +2252,85 @@ export function showQuickViewModal(product) {
 
   let currentQty = 1;
   let selectedSize = null;
+  const selectedCombo = {
+    men_top: null,
+    men_bottom: null,
+    women_top: null,
+    women_bottom: null
+  };
 
-  if (product.sizes.length === 1) {
-    selectedSize = product.sizes[0];
-    const singleChip = modal.querySelector('.qv-size-chip');
-    if (singleChip) {
-      singleChip.classList.add('bg-[#1A1A1A]', 'text-white', 'border-[#1A1A1A]', 'active');
-      if (selectedSizeText) selectedSizeText.innerText = `Selected: ${selectedSize}`;
+  // Setup Twin Combo or Single Size event handlers
+  if (isCombo) {
+    function updateComboSelectionDisplay() {
+      const menTopInd = modal.querySelector('#qv-sel-men-top');
+      const menBottomInd = modal.querySelector('#qv-sel-men-bottom');
+      const womenTopInd = modal.querySelector('#qv-sel-women-top');
+      const womenBottomInd = modal.querySelector('#qv-sel-women-bottom');
+      const progressBadge = modal.querySelector('#qv-combo-progress-badge');
+      const summaryText = modal.querySelector('#qv-combo-summary-text');
+
+      if (menTopInd) menTopInd.innerText = selectedCombo.men_top ? `✓ ${selectedCombo.men_top}` : 'Select size';
+      if (menBottomInd) menBottomInd.innerText = selectedCombo.men_bottom ? `✓ ${selectedCombo.men_bottom}` : 'Select size';
+      if (womenTopInd) womenTopInd.innerText = selectedCombo.women_top ? `✓ ${selectedCombo.women_top}` : 'Select size';
+      if (womenBottomInd) womenBottomInd.innerText = selectedCombo.women_bottom ? `✓ ${selectedCombo.women_bottom}` : 'Select size';
+
+      const count = Object.values(selectedCombo).filter(Boolean).length;
+      if (progressBadge) {
+        if (count === 4) {
+          progressBadge.className = "text-[8px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300";
+          progressBadge.innerText = "4/4 Complete ✓";
+        } else {
+          progressBadge.className = "text-[8px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-300";
+          progressBadge.innerText = `${count}/4 Selected`;
+        }
+      }
+
+      if (summaryText) {
+        if (count === 4) {
+          summaryText.innerText = `Men: Top ${selectedCombo.men_top}, Bottom ${selectedCombo.men_bottom} | Women: Top ${selectedCombo.women_top}, Bottom ${selectedCombo.women_bottom}`;
+        } else {
+          summaryText.innerText = `Please select all 4 pieces (${4 - count} piece${4 - count === 1 ? '' : 's'} remaining)`;
+        }
+      }
     }
+
+    modal.querySelectorAll('.qv-combo-size-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const cat = chip.getAttribute('data-combo-cat');
+        const sz = chip.getAttribute('data-combo-size');
+        const catClass = `qv-chip-${cat.replace('_', '-')}`;
+
+        modal.querySelectorAll(`.${catClass}`).forEach(c => {
+          c.className = `qv-combo-size-chip ${catClass} border border-[#E5E3DF] bg-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-all hover:border-[#1A1A1A] cursor-pointer`;
+        });
+
+        chip.className = `qv-combo-size-chip ${catClass} border border-[#1A1A1A] bg-[#1A1A1A] text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-xs active`;
+        selectedCombo[cat] = sz;
+
+        updateComboSelectionDisplay();
+      });
+    });
+  } else {
+    const qvSizeChips = modal.querySelectorAll('.qv-size-chip');
+    const selectedSizeText = document.getElementById('qv-selected-size-text');
+
+    if (product.sizes.length === 1) {
+      selectedSize = product.sizes[0];
+      const singleChip = modal.querySelector('.qv-size-chip');
+      if (singleChip) {
+        singleChip.classList.add('bg-[#1A1A1A]', 'text-white', 'border-[#1A1A1A]', 'active');
+        if (selectedSizeText) selectedSizeText.innerText = `Selected: ${selectedSize}`;
+      }
+    }
+
+    qvSizeChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        qvSizeChips.forEach(c => c.classList.remove('bg-[#1A1A1A]', 'text-white', 'border-[#1A1A1A]', 'active'));
+        chip.classList.add('bg-[#1A1A1A]', 'text-white', 'border-[#1A1A1A]', 'active');
+        selectedSize = chip.getAttribute('data-size');
+        if (selectedSizeText) selectedSizeText.innerText = `Selected: ${selectedSize}`;
+      });
+    });
   }
 
   function closeModal() {
@@ -2028,16 +2382,6 @@ export function showQuickViewModal(product) {
     });
   });
 
-  // Size Selection
-  qvSizeChips.forEach(chip => {
-    chip.addEventListener('click', () => {
-      qvSizeChips.forEach(c => c.classList.remove('bg-[#1A1A1A]', 'text-white', 'border-[#1A1A1A]', 'active'));
-      chip.classList.add('bg-[#1A1A1A]', 'text-white', 'border-[#1A1A1A]', 'active');
-      selectedSize = chip.getAttribute('data-size');
-      if (selectedSizeText) selectedSizeText.innerText = `Selected: ${selectedSize}`;
-    });
-  });
-
   // Quantity Increment/Decrement
   qtyInc.addEventListener('click', () => {
     currentQty++;
@@ -2053,6 +2397,54 @@ export function showQuickViewModal(product) {
 
   // Add To Bag in Modal
   qvAddBtn.addEventListener('click', () => {
+    const cart = JSON.parse(localStorage.getItem('fp_cart') || '[]');
+    const mainImg = (product.images && product.images.length > 0) ? product.images[0] : (product.image || "");
+    const supplier_links = product.supplier_links || {};
+
+    if (isCombo) {
+      if (!selectedCombo.men_top || !selectedCombo.men_bottom || !selectedCombo.women_top || !selectedCombo.women_bottom) {
+        const sizingBlock = document.getElementById('qv-sizing-block');
+        if (sizingBlock) {
+          sizingBlock.classList.add('animate-bounce');
+          setTimeout(() => sizingBlock.classList.remove('animate-bounce'), 800);
+        }
+        alert("⚠️ Please select sizes for all 4 pieces (Men's Top & Bottom, Women's Top & Bottom) before adding to bag!");
+        return;
+      }
+
+      const formattedSize = `Men: Top ${selectedCombo.men_top}, Bottom ${selectedCombo.men_bottom} | Women: Top ${selectedCombo.women_top}, Bottom ${selectedCombo.women_bottom}`;
+      const existingIndex = cart.findIndex(item => item.productId === product.id && item.size === formattedSize);
+
+      if (existingIndex > -1) {
+        cart[existingIndex].quantity += currentQty;
+        cart[existingIndex].cod_available = product.cod_available === true;
+        cart[existingIndex].is_combo = true;
+        cart[existingIndex].combo_size_breakdown = { ...selectedCombo };
+        cart[existingIndex].supplier_links = supplier_links;
+      } else {
+        cart.push({
+          productId: product.id,
+          title: product.title,
+          price: product.price,
+          size: formattedSize,
+          combo_size_breakdown: { ...selectedCombo },
+          quantity: currentQty,
+          image: mainImg,
+          cod_available: product.cod_available === true,
+          is_combo: true,
+          supplier_links: supplier_links
+        });
+      }
+
+      localStorage.setItem('fp_cart', JSON.stringify(cart));
+      window.dispatchEvent(new CustomEvent('fp_cart_updated'));
+      window.dispatchEvent(new CustomEvent('fp_open_cart'));
+
+      closeModal();
+      return;
+    }
+
+    // Individual Item Add to Bag
     if (!selectedSize) {
       const sizeContainer = document.getElementById('qv-size-container');
       if (sizeContainer) {
@@ -2063,17 +2455,12 @@ export function showQuickViewModal(product) {
       return;
     }
 
-    const cart = JSON.parse(localStorage.getItem('fp_cart') || '[]');
     const existingIndex = cart.findIndex(item => item.productId === product.id && item.size === selectedSize);
-    const mainImg = (product.images && product.images.length > 0) ? product.images[0] : (product.image || "");
-
-    const isCombo = product.is_combo === true || product.category === "Couple";
-    const supplier_links = product.supplier_links || {};
 
     if (existingIndex > -1) {
       cart[existingIndex].quantity += currentQty;
       cart[existingIndex].cod_available = product.cod_available === true;
-      cart[existingIndex].is_combo = isCombo;
+      cart[existingIndex].is_combo = false;
       cart[existingIndex].supplier_links = supplier_links;
     } else {
       cart.push({
@@ -2084,7 +2471,7 @@ export function showQuickViewModal(product) {
         quantity: currentQty,
         image: mainImg,
         cod_available: product.cod_available === true,
-        is_combo: isCombo,
+        is_combo: false,
         supplier_links: supplier_links
       });
     }

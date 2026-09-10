@@ -413,6 +413,7 @@ export function initCheckout(containerId) {
     // Populate active items list
     cartDrawerItems.innerHTML = cart.map((item, index) => {
       const itemImg = item.image || "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=150&q=80";
+      const isCombo = item.is_combo || Boolean(item.combo_size_breakdown) || (item.size && item.size.includes("|"));
       return `
         <div class="flex items-center gap-4 bg-stone-50 border border-[#E5E3DF] p-3 rounded-2xl group animate-fadeIn">
           <!-- Image -->
@@ -421,11 +422,22 @@ export function initCheckout(containerId) {
           </div>
 
           <!-- Description and Controls -->
-          <div class="flex-grow flex flex-col justify-between h-20 py-0.5">
+          <div class="flex-grow flex flex-col justify-between min-h-[80px] py-0.5">
             <div class="flex justify-between items-start gap-1">
               <div>
                 <h4 class="text-xs font-semibold text-[#1A1A1A] line-clamp-1 leading-tight">${item.title}</h4>
-                <p class="text-[9px] uppercase tracking-widest text-[#C5A880] font-bold mt-1">Size: ${item.size}</p>
+                ${isCombo ? `
+                  <div class="mt-1">
+                    <span class="inline-flex items-center gap-1 text-[8px] bg-amber-50 text-amber-900 border border-amber-300 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider">
+                      👯 4-Piece Twin Combo
+                    </span>
+                  </div>
+                  <p class="text-[9px] text-[#5A5A5A] font-medium leading-tight mt-1">
+                    <span class="text-[#C5A880] font-bold">Sizes:</span> ${item.size}
+                  </p>
+                ` : `
+                  <p class="text-[9px] uppercase tracking-widest text-[#C5A880] font-bold mt-1">Size: ${item.size}</p>
+                `}
               </div>
               <button 
                 class="cart-item-remove-btn text-[#8A8A8A] hover:text-rose-600 transition-colors focus:outline-none text-[10px]" 
@@ -565,14 +577,27 @@ export function initCheckout(containerId) {
     const discount = Math.round(subtotal * (1 - discountMultiplier));
     const totalPayable = subtotal - discount;
 
-    checkoutRecapItems.innerHTML = cart.map(item => `
-      <div class="flex justify-between items-center py-1">
-        <span class="text-[#5A5A5A] font-light leading-tight truncate max-w-[280px]">
-          ${item.title} <span class="text-[#C5A880] font-bold text-[9px] uppercase">(${item.size})</span> x ${item.quantity}
-        </span>
-        <span class="font-semibold text-[#1A1A1A]">₹${(item.price * item.quantity).toLocaleString('en-IN')}</span>
-      </div>
-    `).join("");
+    checkoutRecapItems.innerHTML = cart.map(item => {
+      const isCombo = item.is_combo || Boolean(item.combo_size_breakdown) || (item.size && item.size.includes("|"));
+      return `
+        <div class="py-1.5 border-b border-[#E5E3DF]/50 last:border-b-0">
+          <div class="flex justify-between items-start">
+            <span class="text-[#1A1A1A] font-medium leading-tight max-w-[280px]">
+              ${item.title} <span class="text-stone-500 font-bold text-[10px]">x ${item.quantity}</span>
+            </span>
+            <span class="font-semibold text-[#1A1A1A]">₹${(item.price * item.quantity).toLocaleString('en-IN')}</span>
+          </div>
+          ${isCombo ? `
+            <div class="flex flex-col gap-0.5 mt-0.5">
+              <span class="inline-block w-max text-[8px] bg-amber-50 text-amber-900 border border-amber-300 px-1.5 py-0.2 rounded font-bold uppercase tracking-wider">👯 4-Piece Twin Combo</span>
+              <p class="text-[9px] text-[#C5A880] font-medium leading-snug">${item.size}</p>
+            </div>
+          ` : `
+            <p class="text-[9px] text-[#C5A880] font-bold uppercase tracking-wider mt-0.5">Size: ${item.size}</p>
+          `}
+        </div>
+      `;
+    }).join("");
 
     if (discount > 0) {
       checkoutRecapItems.innerHTML += `
@@ -718,11 +743,13 @@ export function initCheckout(containerId) {
       const prod = cachedProducts.find(p => p.id === item.productId);
       const isCombo = (item.is_combo !== undefined)
         ? item.is_combo
-        : (prod?.is_combo === true || prod?.category === "Couple" || Boolean(prod?.supplier_links?.male_top));
+        : (prod?.is_combo === true || prod?.category === "Couple" || Boolean(prod?.combo_sizes) || Boolean(item.combo_size_breakdown) || (item.size && item.size.includes("|")));
       const supplier_links = item.supplier_links || prod?.supplier_links || {};
+      const combo_size_breakdown = item.combo_size_breakdown || prod?.combo_sizes || null;
       return {
         ...item,
         is_combo: isCombo,
+        combo_size_breakdown: combo_size_breakdown,
         supplier_links: supplier_links
       };
     });
@@ -767,8 +794,14 @@ export function initCheckout(containerId) {
     successOrderId.innerText = order.id;
     successOrderTotal.innerText = `₹${order.total.toLocaleString('en-IN')}`;
 
-    // Build the WhatsApp confirmation link details
-    const itemsText = order.items.map(item => `- ${item.title} (${item.size}) x ${item.quantity} [₹${(item.price * item.quantity).toLocaleString('en-IN')}]`).join("%0A");
+    // Build the WhatsApp confirmation link details with explicit 4-piece combo breakdown
+    const itemsText = order.items.map(item => {
+      const isCombo = item.is_combo || Boolean(item.combo_size_breakdown) || (item.size && item.size.includes("|"));
+      if (isCombo) {
+        return `- [Twin Combo] *${item.title}*%0A  Sizes: ${item.size}%0A  Qty: ${item.quantity} [₹${(item.price * item.quantity).toLocaleString('en-IN')}]`;
+      }
+      return `- *${item.title}* (Size: ${item.size}) x ${item.quantity} [₹${(item.price * item.quantity).toLocaleString('en-IN')}]`;
+    }).join("%0A%0A");
     
     const whatsappMessage = `HELLO FASHIONPALETTE! I WOULD LIKE TO CONFIRM MY ORDER:%0A%0A` +
       `ORDER ID: *${order.id}*%0A` +
