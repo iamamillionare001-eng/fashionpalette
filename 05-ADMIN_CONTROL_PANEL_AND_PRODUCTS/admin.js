@@ -1116,19 +1116,19 @@ export function initAdmin(containerId) {
 
           <!-- Desktop Inventory Table View -->
           <div class="hidden md:block overflow-x-auto">
-            <table class="min-w-full divide-y divide-[#E5E3DF]">
+            <table class="w-full divide-y divide-[#E5E3DF] text-left">
               <thead>
                 <tr class="text-[9px] uppercase tracking-widest font-semibold text-[#8A8A8A] text-left">
-                  <th scope="col" class="pb-3 w-12">Item</th>
-                  <th scope="col" class="pb-3 pl-3">Details</th>
-                  <th scope="col" class="pb-3">Category</th>
-                  <th scope="col" class="pb-3">Supplier Cost</th>
-                  <th scope="col" class="pb-3">Selling Price</th>
-                  <th scope="col" class="pb-3">Featured ⭐</th>
-                  <th scope="col" class="pb-3">COD</th>
-                  <th scope="col" class="pb-3">Stock</th>
-                  <th scope="col" class="pb-3">Status</th>
-                  <th scope="col" class="pb-3 text-right">Actions</th>
+                  <th scope="col" class="pb-2.5 w-10">Item</th>
+                  <th scope="col" class="pb-2.5 pl-2">Product</th>
+                  <th scope="col" class="pb-2.5">Category</th>
+                  <th scope="col" class="pb-2.5">Cost</th>
+                  <th scope="col" class="pb-2.5">Price</th>
+                  <th scope="col" class="pb-2.5 text-center w-8" title="Featured">⭐</th>
+                  <th scope="col" class="pb-2.5">Pay</th>
+                  <th scope="col" class="pb-2.5 text-center">Stock</th>
+                  <th scope="col" class="pb-2.5 text-center w-8" title="Storefront Status">Status</th>
+                  <th scope="col" class="pb-2.5 text-right pr-1">Actions</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-[#E5E3DF] text-xs">
@@ -1142,41 +1142,41 @@ export function initAdmin(containerId) {
                   const firstImg = product.images && product.images.length > 0 ? product.images[0] : (product.image || "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=80&q=80");
                   const isDraft = product.is_published === false || product.status === "draft";
                   return `
-                    <tr class="align-middle group">
+                    <tr class="align-middle group hover:bg-[#FAF9F7]/60 transition-colors">
                       <!-- Image Thumbnail -->
-                      <td class="py-3.5">
-                        <div class="w-11 h-14 rounded-lg overflow-hidden border border-[#E5E3DF] bg-stone-50">
+                      <td class="py-2.5 pr-2 w-10">
+                        <div class="w-9 h-12 rounded-lg overflow-hidden border border-[#E5E3DF] bg-stone-50 flex-shrink-0">
                           <img src="${firstImg}" class="w-full h-full object-cover" />
                         </div>
                       </td>
                       
                       <!-- Title & ID -->
-                      <td class="py-3.5 pl-3 max-w-[130px]">
-                        <p class="font-medium text-[#1A1A1A] truncate">${product.title}</p>
-                        <p class="text-[9px] text-[#8A8A8A] font-mono mt-0.5">${product.id}</p>
+                      <td class="py-2.5 pl-2 pr-2 max-w-[130px]">
+                        <p class="font-medium text-[#1A1A1A] text-xs truncate leading-tight" title="${product.title}">${product.title}</p>
+                        <p class="text-[9px] text-[#8A8A8A] font-mono mt-0.5 truncate">${product.id}</p>
                       </td>
 
                       <!-- Category -->
-                      <td class="py-3.5 text-[#5A5A5A] uppercase tracking-wider text-[10px]">
+                      <td class="py-2.5 pr-2 text-[#5A5A5A] uppercase tracking-wider text-[9px] whitespace-nowrap font-medium">
                         ${product.category}
                       </td>
 
                       <!-- Quick-Editable Supplier Cost Input Cell -->
-                      <td class="py-3.5">
-                        <div class="flex items-center gap-1">
+                      <td class="py-2.5 pr-2 whitespace-nowrap">
+                        <div class="inline-flex items-center gap-1">
                           <span class="text-[9px] text-[#8A8A8A] font-bold">₹</span>
                           <input 
                             type="number" 
-                            class="inv-supplier-cost-input w-16 px-1.5 py-1 text-xs font-bold bg-[#F9F8F6] border border-[#E5E3DF] focus:border-[#C5A880] rounded-lg text-[#1A1A1A]" 
+                            class="inv-supplier-cost-input w-14 px-1.5 py-0.5 text-xs font-bold bg-[#F9F8F6] border border-[#E5E3DF] focus:border-[#C5A880] rounded-md text-[#1A1A1A]" 
                             data-prod-id="${product.id}" 
                             value="${product.supplierCost || ''}" 
                             placeholder="Cost" 
                             min="0" 
-                            title="Modifying this auto-calculates Selling Price & updates Cloud in 1 click"
+                            title="Modify cost to auto-calculate price"
                           />
                           <button 
                             type="button" 
-                            class="inv-calc-price-btn px-2 py-1 bg-[#1A1A1A] hover:bg-[#C5A880] text-white hover:text-[#1A1A1A] text-[8px] font-bold uppercase rounded-lg transition-all" 
+                            class="inv-calc-price-btn w-5 h-5 flex items-center justify-center bg-[#1A1A1A] hover:bg-[#C5A880] text-white hover:text-[#1A1A1A] text-[9px] font-bold rounded-md transition-all cursor-pointer focus:outline-none" 
                             data-prod-id="${product.id}" 
                             title="1-Click Calculate & Save"
                           >
@@ -1186,84 +1186,93 @@ export function initAdmin(containerId) {
                       </td>
 
                       <!-- Customer Selling Price / MRP -->
-                      <td class="py-3.5 font-semibold text-[#1A1A1A]">
-                        ₹${product.price}
-                        <p class="text-[9px] text-[#8A8A8A] line-through font-normal">₹${product.originalPrice}</p>
+                      <td class="py-2.5 pr-2 whitespace-nowrap">
+                        <span class="font-semibold text-xs text-[#1A1A1A]">₹${product.price}</span>
+                        <span class="text-[9px] text-[#8A8A8A] line-through font-normal ml-0.5">₹${product.originalPrice}</span>
                         ${product.supplierCost ? `
-                          <p class="text-[8px] text-emerald-700 font-bold mt-0.5">Net: ₹${product.targetProfit || 200}</p>
+                          <p class="text-[8px] text-emerald-700 font-bold leading-none mt-0.5">Net ₹${product.targetProfit || 200}</p>
                         ` : ''}
                       </td>
 
-                      <!-- Featured ⭐ 1-Tap Toggle -->
-                      <td class="py-3.5">
-                        <button 
-                          data-featured-id="${product.id}"
-                          class="featured-toggle-btn px-2.5 py-1.5 rounded-full text-[9px] uppercase tracking-wider font-bold border transition-all flex items-center gap-1 ${
-                            product.featured 
-                              ? 'bg-amber-50 text-amber-900 border-amber-300 shadow-xs' 
-                              : 'bg-stone-50 text-stone-500 border-stone-200 hover:border-stone-400'
-                          }"
-                          title="${product.featured ? 'Featured on storefront (Click to unfeature)' : 'Click to feature on storefront'}"
-                        >
-                          <span>${product.featured ? '⭐ Featured' : '☆ Feature'}</span>
-                        </button>
+                      <!-- Featured ⭐ 1-Tap Toggle (Icon Only) -->
+                      <td class="py-2.5 px-1 text-center whitespace-nowrap">
+                        ${product.featured ? `
+                          <button 
+                            type="button"
+                            data-featured-id="${product.id}"
+                            class="featured-toggle-btn text-amber-500 text-base hover:scale-110 transition-transform cursor-pointer focus:outline-none leading-none"
+                            title="Featured Item (Click to Unfeature)"
+                          >
+                            ★
+                          </button>
+                        ` : `
+                          <button 
+                            type="button"
+                            data-featured-id="${product.id}"
+                            class="featured-toggle-btn text-stone-300 hover:text-amber-400 text-base transition-colors cursor-pointer focus:outline-none leading-none"
+                            title="Click to Feature"
+                          >
+                            ☆
+                          </button>
+                        `}
                       </td>
 
-                      <!-- COD Badge -->
-                      <td class="py-3.5">
+                      <!-- COD Badge (Compact micro-badge) -->
+                      <td class="py-2.5 pr-2 whitespace-nowrap">
                         ${product.cod_available === true ? `
-                          <span class="px-2.5 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
-                            ✓ COD
+                          <span class="inline-block bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap" style="font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 9999px; line-height: 1;">
+                            COD
                           </span>
                         ` : `
-                          <span class="px-2.5 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider bg-stone-100 text-stone-500 border border-stone-200 whitespace-nowrap">
+                          <span class="inline-block bg-stone-100 text-stone-500 border border-stone-200 whitespace-nowrap" style="font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 9999px; line-height: 1;">
                             Prepaid
                           </span>
                         `}
                       </td>
 
-                      <!-- Stock Status Toggle Badge -->
-                      <td class="py-3.5">
+                      <!-- Stock Status Toggle Badge (Compact micro-pill) -->
+                      <td class="py-2.5 px-1 text-center whitespace-nowrap">
                         <button 
+                          type="button"
                           data-toggle-id="${product.id}"
-                          class="stock-toggle-badge px-3 py-1.5 rounded-full text-[9px] uppercase tracking-widest font-bold border transition-all ${
+                          class="stock-toggle-badge inline-flex items-center justify-center transition-all cursor-pointer focus:outline-none ${
                             product.inStock 
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' 
-                              : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' 
+                              : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
                           }"
+                          style="font-size: 10px; font-weight: 500; letter-spacing: 0.05em; padding: 3px 8px; border-radius: 9999px; line-height: 1; white-space: nowrap;"
+                          title="Click to toggle stock status"
                         >
                           ${product.inStock ? "In Stock" : "Out of Stock"}
                         </button>
                       </td>
 
-                      <!-- Status Badge (LIVE vs DRAFT) -->
-                      <td class="py-3.5">
-                        ${isDraft ? `
-                          <span class="px-2.5 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider bg-amber-50 text-amber-800 border border-amber-300 whitespace-nowrap inline-flex items-center gap-1 shadow-2xs">
-                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> DRAFT
-                          </span>
+                      <!-- Status Badge (Minimalist Glowing Dot) -->
+                      <td class="py-2.5 px-1 text-center whitespace-nowrap">
+                        ${!isDraft ? `
+                          <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm" title="Live on Storefront"></span>
                         ` : `
-                          <span class="px-2.5 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-300 whitespace-nowrap inline-flex items-center gap-1 shadow-2xs">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> LIVE
-                          </span>
+                          <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-400" title="Draft / Staged"></span>
                         `}
                       </td>
 
-                      <!-- Actions: QUICK-PUBLISH, EDIT & DELETE -->
-                      <td class="py-3.5 text-right">
-                        <div class="flex items-center justify-end gap-1.5">
+                      <!-- Actions: QUICK-PUBLISH, EDIT & DELETE (Always visible, compact luxury pills) -->
+                      <td class="py-2.5 text-right whitespace-nowrap pl-2 pr-0">
+                        <div class="inline-flex items-center justify-end gap-1">
                           ${isDraft ? `
                             <button 
+                              type="button"
                               data-publish-id="${product.id}"
-                              class="quick-publish-btn text-emerald-800 hover:text-white border border-emerald-500 hover:bg-emerald-600 rounded-xl px-2.5 py-1.5 bg-emerald-50 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none flex items-center gap-1 shadow-xs cursor-pointer"
+                              class="quick-publish-btn text-emerald-800 hover:text-white border border-emerald-400 hover:bg-emerald-600 rounded-lg px-2 py-1 bg-emerald-50 text-[9px] uppercase tracking-wider font-bold transition-all focus:outline-none flex items-center gap-1 shadow-2xs cursor-pointer whitespace-nowrap"
                               title="1-Tap Push Live to Storefront"
                             >
-                              <span>🚀 Push Live</span>
+                              <span>🚀 Live</span>
                             </button>
                           ` : ''}
                           <button 
+                            type="button"
                             data-edit-id="${product.id}"
-                            class="edit-product-btn text-amber-900 hover:text-[#1A1A1A] border border-[#C5A880] hover:border-[#1A1A1A] rounded-xl px-2.5 py-1.5 bg-amber-500/10 hover:bg-[#C5A880] text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none flex items-center gap-1"
+                            class="edit-product-btn text-[#1A1A1A] hover:text-white border border-[#C5A880] hover:bg-[#1A1A1A] rounded-lg px-2 py-1 bg-amber-500/10 text-[9px] uppercase tracking-wider font-bold transition-all focus:outline-none flex items-center gap-1 cursor-pointer whitespace-nowrap"
                             title="Quick Edit Product Details & Gallery"
                           >
                             <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1272,10 +1281,14 @@ export function initAdmin(containerId) {
                             <span>Edit</span>
                           </button>
                           <button 
+                            type="button"
                             data-delete-id="${product.id}"
-                            class="delete-product-btn text-rose-600 hover:text-rose-900 border border-rose-200 hover:border-rose-600 rounded-xl px-2.5 py-1.5 bg-rose-50/50 hover:bg-rose-50 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none"
+                            class="delete-product-btn text-rose-600 hover:text-white border border-rose-200 hover:bg-rose-600 rounded-lg p-1.5 bg-rose-50/60 text-[9px] uppercase tracking-wider font-bold transition-all focus:outline-none cursor-pointer whitespace-nowrap flex items-center justify-center"
+                            title="Delete Product"
                           >
-                            Delete
+                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
                           </button>
                         </div>
                       </td>
@@ -1305,21 +1318,21 @@ export function initAdmin(containerId) {
 
                     <!-- Details -->
                     <div class="flex-grow space-y-1">
-                      <p class="font-medium text-[#1A1A1A] text-xs line-clamp-1">${product.title}</p>
+                      <div class="flex items-start justify-between gap-1">
+                        <p class="font-medium text-[#1A1A1A] text-xs line-clamp-1">${product.title}</p>
+                        ${isDraft ? `
+                          <span class="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex-shrink-0">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Draft
+                          </span>
+                        ` : `
+                          <span class="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex-shrink-0">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Live
+                          </span>
+                        `}
+                      </div>
                       <div class="flex items-center justify-between text-[10px] text-[#5A5A5A]">
                         <span class="uppercase tracking-widest font-semibold">${product.category}</span>
-                        <div class="flex items-center gap-2">
-                          ${isDraft ? `
-                            <span class="px-2 py-0.5 rounded-full text-[8px] uppercase font-bold tracking-wider bg-amber-50 text-amber-800 border border-amber-300">
-                              📦 DRAFT
-                            </span>
-                          ` : `
-                            <span class="px-2 py-0.5 rounded-full text-[8px] uppercase font-bold tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-300">
-                              ● LIVE
-                            </span>
-                          `}
-                          <span class="font-mono text-[8px]">${product.id}</span>
-                        </div>
+                        <span class="font-mono text-[8px] text-[#8A8A8A]">${product.id}</span>
                       </div>
                       <div class="flex items-baseline gap-2 pt-0.5">
                         <span class="font-semibold text-xs text-[#1A1A1A]">₹${product.price}</span>
@@ -1355,45 +1368,51 @@ export function initAdmin(containerId) {
 
                   <!-- 1-Tap Featured Button Badge -->
                   <button 
+                    type="button"
                     data-featured-id="${product.id}"
-                    class="featured-toggle-btn w-full py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold border transition-all flex items-center justify-center gap-1 ${
+                    class="featured-toggle-btn w-full py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold border transition-all flex items-center justify-center gap-1.5 ${
                       product.featured 
                         ? 'bg-amber-50 text-amber-900 border-amber-300' 
                         : 'bg-white text-stone-500 border-stone-200'
                     }"
                   >
-                    <span>${product.featured ? '⭐ Featured Piece' : '☆ Mark as Featured'}</span>
+                    <span>${product.featured ? '★ Featured Piece (Active)' : '☆ Mark as Featured'}</span>
                   </button>
 
                   <!-- Touch Targets: Quick-Publish, Stock Toggle, EDIT & Delete Buttons -->
                   <div class="flex gap-2">
                     ${isDraft ? `
                       <button 
+                        type="button"
                         data-publish-id="${product.id}"
-                        class="quick-publish-btn flex-1 py-2 rounded-xl text-[9px] uppercase tracking-widest font-bold border transition-all bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700 flex items-center justify-center gap-1 shadow-xs cursor-pointer min-h-[40px]"
+                        class="quick-publish-btn flex-1 py-2 rounded-xl text-[9px] uppercase tracking-widest font-bold border transition-all bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700 flex items-center justify-center gap-1 shadow-xs cursor-pointer min-h-[38px]"
                       >
                         🚀 Push Live
                       </button>
                     ` : ''}
                     <button 
+                      type="button"
                       data-toggle-id="${product.id}"
-                      class="stock-toggle-badge flex-1 min-h-[40px] rounded-xl text-[9px] uppercase tracking-widest font-bold border transition-all flex items-center justify-center ${
+                      class="stock-toggle-badge flex-1 min-h-[38px] transition-all flex items-center justify-center ${
                         product.inStock 
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' 
-                          : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' 
+                          : 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
                       }"
+                      style="font-size: 10px; font-weight: 500; letter-spacing: 0.05em; padding: 3px 8px; border-radius: 9999px; line-height: 1; white-space: nowrap;"
                     >
-                      ${product.inStock ? "In Stock" : "Out"}
+                      ${product.inStock ? "In Stock" : "Out of Stock"}
                     </button>
                     <button 
+                      type="button"
                       data-edit-id="${product.id}"
-                      class="edit-product-btn px-3 min-h-[40px] text-amber-900 hover:text-[#1A1A1A] border border-[#C5A880] rounded-xl bg-amber-500/10 hover:bg-[#C5A880] text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none flex items-center justify-center gap-1"
+                      class="edit-product-btn px-3 min-h-[38px] text-amber-900 hover:text-[#1A1A1A] border border-[#C5A880] rounded-xl bg-amber-500/10 hover:bg-[#C5A880] text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none flex items-center justify-center gap-1 cursor-pointer"
                     >
                       Edit
                     </button>
                     <button 
+                      type="button"
                       data-delete-id="${product.id}"
-                      class="delete-product-btn px-3 min-h-[40px] text-rose-600 hover:text-rose-900 border border-rose-200 hover:border-rose-600 rounded-xl bg-rose-50/50 hover:bg-rose-50 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none flex items-center justify-center"
+                      class="delete-product-btn px-3 min-h-[38px] text-rose-600 hover:text-rose-900 border border-rose-200 hover:border-rose-600 rounded-xl bg-rose-50/50 hover:bg-rose-50 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none flex items-center justify-center cursor-pointer"
                     >
                       Del
                     </button>
