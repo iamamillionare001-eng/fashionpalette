@@ -29,6 +29,31 @@ import {
   setEnhancerEnabled
 } from './image_studio.js';
 
+// Toast Notification Helper for Admin Dashboard & Inventory
+export function showAdminToast(message, isError = false) {
+  const existing = document.getElementById('fp-admin-toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.id = 'fp-admin-toast';
+  toast.className = `fixed bottom-6 right-6 z-[130] flex items-center gap-2.5 px-5 py-3 rounded-2xl text-xs font-semibold shadow-2xl backdrop-blur-md transition-all duration-300 animate-fadeIn ${
+    isError 
+      ? 'bg-rose-900/95 text-rose-100 border border-rose-500' 
+      : 'bg-[#1A1A1A]/95 text-amber-200 border border-[#C5A880]'
+  }`;
+  toast.innerHTML = `
+    <span class="text-sm">${isError ? '⚠️' : '✨'}</span>
+    <span>${message}</span>
+  `;
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px)';
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
+
 // Helper local functions to read/write product catalog
 function getProducts() {
   const cached = localStorage.getItem("fp_products_data");
@@ -1025,15 +1050,25 @@ export function initAdmin(containerId) {
               <input type="text" id="prod-fabric" placeholder="e.g. 100% Pure Georgette Silk. Dry clean only." class="w-full min-h-[48px] bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-3 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
             </div>
 
+            <div>
+              <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1.5">Size &amp; Fit Guidance (Optional)</label>
+              <textarea id="prod-size-fit-guidance" placeholder="e.g., Model is 5'10&quot; wearing Size L. Tailored comfort fit. Opt for one size up for a relaxed traditional drape." rows="2" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-3 text-xs rounded-xl focus:outline-none focus:border-[#C5A880] resize-none"></textarea>
+            </div>
+
             <!-- COD Availability Toggle -->
             <div class="flex items-center gap-2.5 p-3 rounded-xl bg-[#F9F8F6] border border-[#E5E3DF]">
               <input type="checkbox" id="prod-cod-available" class="w-4 h-4 text-emerald-600 rounded cursor-pointer accent-[#1A1A1A]" />
               <label for="prod-cod-available" class="text-xs font-medium text-[#1A1A1A] cursor-pointer select-none">Enable Cash on Delivery (COD) for this item</label>
             </div>
 
-            <button type="submit" id="add-product-submit-btn" class="w-full min-h-[48px] bg-[#1A1A1A] hover:bg-[#C5A880] hover:text-[#1A1A1A] text-white text-xs uppercase tracking-widest font-semibold transition-all duration-300 rounded-xl focus:outline-none shadow-md flex items-center justify-center">
-              Add to Storefront Catalog
-            </button>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <button type="button" id="add-product-draft-btn" class="w-full min-h-[48px] bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 text-xs uppercase tracking-widest font-bold transition-all rounded-xl focus:outline-none flex items-center justify-center gap-1.5 cursor-pointer shadow-xs">
+                <span>📦 Store (Save Draft)</span>
+              </button>
+              <button type="button" id="add-product-publish-btn" class="w-full min-h-[48px] bg-[#1A1A1A] hover:bg-[#C5A880] hover:text-[#1A1A1A] text-white text-xs uppercase tracking-widest font-bold transition-all duration-300 rounded-xl focus:outline-none shadow-md flex items-center justify-center gap-1.5 cursor-pointer">
+                <span>🚀 Push to Store (Publish Live)</span>
+              </button>
+            </div>
           </form>
         </div>
 
@@ -1092,18 +1127,20 @@ export function initAdmin(containerId) {
                   <th scope="col" class="pb-3">Featured ⭐</th>
                   <th scope="col" class="pb-3">COD</th>
                   <th scope="col" class="pb-3">Stock</th>
+                  <th scope="col" class="pb-3">Status</th>
                   <th scope="col" class="pb-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-[#E5E3DF] text-xs">
                 ${filteredProducts.length === 0 ? `
                   <tr>
-                    <td colspan="9" class="py-8 text-center text-xs text-[#8A8A8A]">
+                    <td colspan="10" class="py-8 text-center text-xs text-[#8A8A8A]">
                       No products found matching category "${inventoryCategory}" or search query "${inventorySearch}".
                     </td>
                   </tr>
                 ` : filteredProducts.map(product => {
                   const firstImg = product.images && product.images.length > 0 ? product.images[0] : (product.image || "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=80&q=80");
+                  const isDraft = product.is_published === false || product.status === "draft";
                   return `
                     <tr class="align-middle group">
                       <!-- Image Thumbnail -->
@@ -1134,7 +1171,7 @@ export function initAdmin(containerId) {
                             data-prod-id="${product.id}" 
                             value="${product.supplierCost || ''}" 
                             placeholder="Cost" 
-                            min="0"
+                            min="0" 
                             title="Modifying this auto-calculates Selling Price & updates Cloud in 1 click"
                           />
                           <button 
@@ -1199,9 +1236,31 @@ export function initAdmin(containerId) {
                         </button>
                       </td>
 
-                      <!-- Actions: EDIT & DELETE -->
+                      <!-- Status Badge (LIVE vs DRAFT) -->
+                      <td class="py-3.5">
+                        ${isDraft ? `
+                          <span class="px-2.5 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider bg-amber-50 text-amber-800 border border-amber-300 whitespace-nowrap inline-flex items-center gap-1 shadow-2xs">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> DRAFT
+                          </span>
+                        ` : `
+                          <span class="px-2.5 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-300 whitespace-nowrap inline-flex items-center gap-1 shadow-2xs">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> LIVE
+                          </span>
+                        `}
+                      </td>
+
+                      <!-- Actions: QUICK-PUBLISH, EDIT & DELETE -->
                       <td class="py-3.5 text-right">
                         <div class="flex items-center justify-end gap-1.5">
+                          ${isDraft ? `
+                            <button 
+                              data-publish-id="${product.id}"
+                              class="quick-publish-btn text-emerald-800 hover:text-white border border-emerald-500 hover:bg-emerald-600 rounded-xl px-2.5 py-1.5 bg-emerald-50 text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none flex items-center gap-1 shadow-xs cursor-pointer"
+                              title="1-Tap Push Live to Storefront"
+                            >
+                              <span>🚀 Push Live</span>
+                            </button>
+                          ` : ''}
                           <button 
                             data-edit-id="${product.id}"
                             class="edit-product-btn text-amber-900 hover:text-[#1A1A1A] border border-[#C5A880] hover:border-[#1A1A1A] rounded-xl px-2.5 py-1.5 bg-amber-500/10 hover:bg-[#C5A880] text-[9px] uppercase tracking-widest font-bold transition-all focus:outline-none flex items-center gap-1"
@@ -1235,6 +1294,7 @@ export function initAdmin(containerId) {
               </div>
             ` : filteredProducts.map(product => {
               const firstImg = product.images && product.images.length > 0 ? product.images[0] : (product.image || "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=80&q=80");
+              const isDraft = product.is_published === false || product.status === "draft";
               return `
                 <div class="bg-[#F9F8F6] border border-[#E5E3DF] p-4 rounded-2xl space-y-3 shadow-xs">
                   <div class="flex items-start gap-3">
@@ -1248,7 +1308,18 @@ export function initAdmin(containerId) {
                       <p class="font-medium text-[#1A1A1A] text-xs line-clamp-1">${product.title}</p>
                       <div class="flex items-center justify-between text-[10px] text-[#5A5A5A]">
                         <span class="uppercase tracking-widest font-semibold">${product.category}</span>
-                        <span class="font-mono text-[8px]">${product.id}</span>
+                        <div class="flex items-center gap-2">
+                          ${isDraft ? `
+                            <span class="px-2 py-0.5 rounded-full text-[8px] uppercase font-bold tracking-wider bg-amber-50 text-amber-800 border border-amber-300">
+                              📦 DRAFT
+                            </span>
+                          ` : `
+                            <span class="px-2 py-0.5 rounded-full text-[8px] uppercase font-bold tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-300">
+                              ● LIVE
+                            </span>
+                          `}
+                          <span class="font-mono text-[8px]">${product.id}</span>
+                        </div>
                       </div>
                       <div class="flex items-baseline gap-2 pt-0.5">
                         <span class="font-semibold text-xs text-[#1A1A1A]">₹${product.price}</span>
@@ -1294,8 +1365,16 @@ export function initAdmin(containerId) {
                     <span>${product.featured ? '⭐ Featured Piece' : '☆ Mark as Featured'}</span>
                   </button>
 
-                  <!-- Touch Targets Stock Toggle, EDIT & Delete Buttons -->
+                  <!-- Touch Targets: Quick-Publish, Stock Toggle, EDIT & Delete Buttons -->
                   <div class="flex gap-2">
+                    ${isDraft ? `
+                      <button 
+                        data-publish-id="${product.id}"
+                        class="quick-publish-btn flex-1 py-2 rounded-xl text-[9px] uppercase tracking-widest font-bold border transition-all bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700 flex items-center justify-center gap-1 shadow-xs cursor-pointer min-h-[40px]"
+                      >
+                        🚀 Push Live
+                      </button>
+                    ` : ''}
                     <button 
                       data-toggle-id="${product.id}"
                       class="stock-toggle-badge flex-1 min-h-[40px] rounded-xl text-[9px] uppercase tracking-widest font-bold border transition-all flex items-center justify-center ${
@@ -1486,6 +1565,22 @@ export function initAdmin(containerId) {
           descInput.value = isTwin
             ? "Celebrate upcoming festivities in coordinated royal splendor. This twin festive couple set blends matching color palettes with artisanal hand-embroidered details and fluid festive drapes, crafted to turn every head."
             : "Curated for festive celebrations and prestigious gatherings. This handcrafted dropshipped ensemble blends traditional artisanal craftsmanship with a contemporary regal silhouette. Features breathable festive fabric, immaculate thread embroidery, and tailored drape.";
+        }
+
+        // Size & Fit Guidance
+        const sizeFitInput = tabContent.querySelector('#prod-size-fit-guidance');
+        if (sizeFitInput) {
+          if (isTwin) {
+            sizeFitInput.value = "Men: Model is 6'0\" wearing Size L. Tailored comfort fit. Women: Model is 5'7\" wearing Free Size / M with flowing festive drape.";
+          } else if (inferredCategory === "Men") {
+            sizeFitInput.value = "Model is 6'0\" (Chest 40\") wearing Size L. Tailored comfort fit. Opt for one size up for a relaxed traditional drape.";
+          } else if (inferredCategory === "Women") {
+            sizeFitInput.value = tokens.includes('saree') 
+              ? "Model is 5'7\" wearing Free Size. Drapes with fluid elegance; includes 5.5m saree + 0.8m unstitched matching blouse piece."
+              : "Model is 5'8\" wearing Size M. Tailored silhouette with comfortable festive ease.";
+          } else {
+            sizeFitInput.value = "Tailored comfort fit. Opt for one size up for a relaxed traditional drape.";
+          }
         }
 
         // Apply Default Dropshipping Pricing Formula
@@ -1923,137 +2018,169 @@ export function initAdmin(containerId) {
     }
 
     // ==============================================================
-    // G. ADD PRODUCT FORM SUBMISSION
+    // G. ADD PRODUCT FORM SUBMISSION (STORE DRAFT VS PUSH LIVE)
     // ==============================================================
+    async function handleSaveNewProduct(isPublished) {
+      const title = document.getElementById('prod-title')?.value.trim();
+      if (!title) {
+        showAdminToast("⚠️ Please enter a product title!", true);
+        return;
+      }
+
+      const category = document.getElementById('prod-category')?.value || 'Women';
+      const badge = document.getElementById('prod-badge')?.value.trim() || '';
+      const supplierCost = parseInt(document.getElementById('prod-supplier-cost')?.value) || 0;
+      const targetProfit = parseInt(document.getElementById('prod-target-profit')?.value) || 200;
+      const rtoBuffer = parseInt(document.getElementById('prod-rto-buffer')?.value) || 100;
+      const price = parseInt(document.getElementById('prod-price')?.value);
+      const originalPrice = parseInt(document.getElementById('prod-mrp')?.value);
+
+      if (isNaN(price) || isNaN(originalPrice) || price <= 0) {
+        showAdminToast("⚠️ Please enter valid pricing (Selling Price and MRP)!", true);
+        return;
+      }
+
+      const description = document.getElementById('prod-desc')?.value.trim() || '';
+      const fabricDetails = document.getElementById('prod-fabric')?.value.trim() || "Premium luxury fabric. Delicate handling.";
+      const size_fit_guidance = document.getElementById('prod-size-fit-guidance')?.value.trim() || '';
+
+      const isTwin = ingestTwinRadio && ingestTwinRadio.checked;
+      let sizes = [];
+      let combo_sizes = null;
+
+      if (isTwin) {
+        if (
+          selectedComboSizes.men_top.size === 0 ||
+          selectedComboSizes.men_bottom.size === 0 ||
+          selectedComboSizes.women_top.size === 0 ||
+          selectedComboSizes.women_bottom.size === 0
+        ) {
+          showAdminToast("⚠️ Please select at least one active size in stock for all 4 categories!", true);
+          return;
+        }
+        combo_sizes = {
+          men_top: Array.from(selectedComboSizes.men_top),
+          men_bottom: Array.from(selectedComboSizes.men_bottom),
+          women_top: Array.from(selectedComboSizes.women_top),
+          women_bottom: Array.from(selectedComboSizes.women_bottom)
+        };
+        sizes = ["Custom 4-Piece Combo"];
+      } else {
+        sizes = Array.from(selectedSizes);
+        if (sizes.length === 0) {
+          showAdminToast("⚠️ Please select at least one size tag!", true);
+          return;
+        }
+      }
+
+      let mainImage = "";
+      if (mainImageMode === "upload") {
+        if (!uploadedMainImage) {
+          showAdminToast("⚠️ Please upload and crop a main product image!", true);
+          return;
+        }
+        mainImage = uploadedMainImage;
+      } else {
+        mainImage = document.getElementById('prod-image-main')?.value.trim();
+        if (!mainImage) {
+          showAdminToast("⚠️ Please enter a main product image URL!", true);
+          return;
+        }
+      }
+
+      const images = [mainImage];
+      if (galleryImageMode === "upload") {
+        uploadedGalleryImages.forEach(img => images.push(img));
+      } else {
+        const galleryInput = document.getElementById('prod-image-gallery')?.value.trim();
+        if (galleryInput) {
+          galleryInput.split(',').map(img => img.trim()).filter(img => img !== "").forEach(img => {
+            images.push(img);
+          });
+        }
+      }
+
+      const id = "prod-" + Date.now();
+      const discountPercentage = Math.round(((originalPrice - price) / originalPrice) * 100);
+      const codAvailableInput = document.getElementById('prod-cod-available');
+      const cod_available = codAvailableInput ? codAvailableInput.checked : false;
+
+      let supplier_links = {};
+      if (isTwin) {
+        supplier_links = {
+          male_top: tabContent.querySelector('#ingest-male-top')?.value.trim() || '',
+          male_bottom: tabContent.querySelector('#ingest-male-bottom')?.value.trim() || '',
+          female_top: tabContent.querySelector('#ingest-female-top')?.value.trim() || '',
+          female_bottom: tabContent.querySelector('#ingest-female-bottom')?.value.trim() || ''
+        };
+      } else {
+        supplier_links = {
+          top: tabContent.querySelector('#ingest-top-link')?.value.trim() || '',
+          bottom: tabContent.querySelector('#ingest-bottom-link')?.value.trim() || ''
+        };
+      }
+
+      const newProduct = {
+        id,
+        title,
+        category,
+        is_combo: isTwin,
+        combo_sizes: combo_sizes,
+        supplier_links,
+        supplierCost,
+        targetProfit,
+        rtoBuffer,
+        price,
+        originalPrice,
+        discountPercentage,
+        badge: badge || null,
+        featured: false,
+        cod_available,
+        description,
+        fabricDetails,
+        size_fit_guidance,
+        sizes,
+        inStock: true,
+        is_published: isPublished,
+        status: isPublished ? "active" : "draft",
+        images,
+        image: mainImage
+      };
+
+      const draftBtn = tabContent.querySelector('#add-product-draft-btn');
+      const publishBtn = tabContent.querySelector('#add-product-publish-btn');
+      if (draftBtn) draftBtn.disabled = true;
+      if (publishBtn) publishBtn.disabled = true;
+
+      await saveProductToCloud(newProduct);
+      
+      if (isPublished) {
+        showAdminToast("Product pushed live to storefront!");
+      } else {
+        showAdminToast("Product stored as draft (not visible on storefront)");
+      }
+
+      selectedSizes.clear();
+      selectedSizes.add("M");
+      selectedSizes.add("L");
+      selectedSizes.add("XL");
+      customSizes.length = 0;
+      uploadedMainImage = "";
+      uploadedGalleryImages.length = 0;
+
+      renderProductsTab();
+    }
+
+    const draftBtn = tabContent.querySelector('#add-product-draft-btn');
+    const publishBtn = tabContent.querySelector('#add-product-publish-btn');
+    if (draftBtn) draftBtn.addEventListener('click', () => handleSaveNewProduct(false));
+    if (publishBtn) publishBtn.addEventListener('click', () => handleSaveNewProduct(true));
+
     const form = document.getElementById('add-product-form');
     if (form) {
-      form.addEventListener('submit', async (e) => {
+      form.addEventListener('submit', (e) => {
         e.preventDefault();
-
-        const title = document.getElementById('prod-title').value.trim();
-        const category = document.getElementById('prod-category').value;
-        const badge = document.getElementById('prod-badge').value.trim();
-        const supplierCost = parseInt(document.getElementById('prod-supplier-cost').value) || 0;
-        const targetProfit = parseInt(document.getElementById('prod-target-profit').value) || 200;
-        const rtoBuffer = parseInt(document.getElementById('prod-rto-buffer').value) || 100;
-        const price = parseInt(document.getElementById('prod-price').value);
-        const originalPrice = parseInt(document.getElementById('prod-mrp').value);
-        const description = document.getElementById('prod-desc').value.trim();
-        const fabricDetails = document.getElementById('prod-fabric').value.trim() || "Premium luxury fabric. Delicate handling.";
-
-        const isTwin = ingestTwinRadio && ingestTwinRadio.checked;
-        let sizes = [];
-        let combo_sizes = null;
-
-        if (isTwin) {
-          if (
-            selectedComboSizes.men_top.size === 0 ||
-            selectedComboSizes.men_bottom.size === 0 ||
-            selectedComboSizes.women_top.size === 0 ||
-            selectedComboSizes.women_bottom.size === 0
-          ) {
-            alert("⚠️ Please select at least one active size in stock for all 4 categories (Men's Top, Men's Bottom, Women's Top, Women's Bottom)!");
-            return;
-          }
-          combo_sizes = {
-            men_top: Array.from(selectedComboSizes.men_top),
-            men_bottom: Array.from(selectedComboSizes.men_bottom),
-            women_top: Array.from(selectedComboSizes.women_top),
-            women_bottom: Array.from(selectedComboSizes.women_bottom)
-          };
-          sizes = ["Custom 4-Piece Combo"];
-        } else {
-          sizes = Array.from(selectedSizes);
-          if (sizes.length === 0) {
-            alert("⚠️ Please select at least one size tag!");
-            return;
-          }
-        }
-
-        let mainImage = "";
-        if (mainImageMode === "upload") {
-          if (!uploadedMainImage) {
-            alert("⚠️ Please upload and crop a main product image!");
-            return;
-          }
-          mainImage = uploadedMainImage;
-        } else {
-          mainImage = document.getElementById('prod-image-main').value.trim();
-          if (!mainImage) {
-            alert("⚠️ Please enter a main product image URL!");
-            return;
-          }
-        }
-
-        const images = [mainImage];
-        if (galleryImageMode === "upload") {
-          uploadedGalleryImages.forEach(img => images.push(img));
-        } else {
-          const galleryInput = document.getElementById('prod-image-gallery').value.trim();
-          if (galleryInput) {
-            galleryInput.split(',').map(img => img.trim()).filter(img => img !== "").forEach(img => {
-              images.push(img);
-            });
-          }
-        }
-
-        const id = "prod-" + Date.now();
-        const discountPercentage = Math.round(((originalPrice - price) / originalPrice) * 100);
-        const codAvailableInput = document.getElementById('prod-cod-available');
-        const cod_available = codAvailableInput ? codAvailableInput.checked : false;
-
-        let supplier_links = {};
-        if (isTwin) {
-          supplier_links = {
-            male_top: tabContent.querySelector('#ingest-male-top')?.value.trim() || '',
-            male_bottom: tabContent.querySelector('#ingest-male-bottom')?.value.trim() || '',
-            female_top: tabContent.querySelector('#ingest-female-top')?.value.trim() || '',
-            female_bottom: tabContent.querySelector('#ingest-female-bottom')?.value.trim() || ''
-          };
-        } else {
-          supplier_links = {
-            top: tabContent.querySelector('#ingest-top-link')?.value.trim() || '',
-            bottom: tabContent.querySelector('#ingest-bottom-link')?.value.trim() || ''
-          };
-        }
-
-        const newProduct = {
-          id,
-          title,
-          category,
-          is_combo: isTwin,
-          combo_sizes: combo_sizes,
-          supplier_links,
-          supplierCost,
-          targetProfit,
-          rtoBuffer,
-          price,
-          originalPrice,
-          discountPercentage,
-          badge: badge || null,
-          featured: false,
-          cod_available,
-          description,
-          fabricDetails,
-          sizes,
-          inStock: true,
-          images,
-          image: mainImage
-        };
-
-        await saveProductToCloud(newProduct);
-        
-        alert(`⚡ Product "${title}" has been saved and synchronized with Cloud Firestore!`);
-
-        selectedSizes.clear();
-        selectedSizes.add("M");
-        selectedSizes.add("L");
-        selectedSizes.add("XL");
-        customSizes.length = 0;
-        uploadedMainImage = "";
-        uploadedGalleryImages.length = 0;
-
-        renderProductsTab();
+        handleSaveNewProduct(true);
       });
     }
 
@@ -2109,8 +2236,24 @@ export function initAdmin(containerId) {
     });
 
     // ==============================================================
-    // I. FEATURED ⭐, QUICK-EDIT, STOCK & DELETE BUTTONS
+    // I. FEATURED ⭐, QUICK-EDIT, QUICK-PUBLISH, STOCK & DELETE BUTTONS
     // ==============================================================
+    const quickPublishBtns = tabContent.querySelectorAll('.quick-publish-btn');
+    quickPublishBtns.forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-publish-id');
+        const prod = products.find(p => p.id === id);
+        if (prod) {
+          prod.is_published = true;
+          prod.status = "active";
+          await saveProductToCloud(prod);
+          showAdminToast("Product pushed live to storefront!");
+          renderProductsTab();
+        }
+      });
+    });
+
     const featuredBtns = tabContent.querySelectorAll('.featured-toggle-btn');
     featuredBtns.forEach(btn => {
       btn.addEventListener('click', async (e) => {

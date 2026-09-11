@@ -23,6 +23,31 @@ import {
   setEnhancerEnabled
 } from '../05-ADMIN_CONTROL_PANEL_AND_PRODUCTS/image_studio.js';
 
+// Toast Notification Helper for Storefront & Quick Edit
+export function showGalleryToast(message, isError = false) {
+  const existing = document.getElementById('fp-gallery-toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.id = 'fp-gallery-toast';
+  toast.className = `fixed bottom-6 right-6 z-[130] flex items-center gap-2.5 px-5 py-3 rounded-2xl text-xs font-semibold shadow-2xl backdrop-blur-md transition-all duration-300 animate-fadeIn ${
+    isError 
+      ? 'bg-rose-900/95 text-rose-100 border border-rose-500' 
+      : 'bg-[#1A1A1A]/95 text-amber-200 border border-[#C5A880]'
+  }`;
+  toast.innerHTML = `
+    <span class="text-sm">${isError ? '⚠️' : '✨'}</span>
+    <span>${message}</span>
+  `;
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px)';
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
+
 // Curated dropshipping apparel catalog for Ganesh Chaturthi and Festive 2026
 const DEFAULT_PRODUCTS = [
   {
@@ -31,6 +56,9 @@ const DEFAULT_PRODUCTS = [
     featured: true,
     cod_available: true,
     is_combo: false,
+    is_published: true,
+    status: "active",
+    size_fit_guidance: "Model is 5'7\" wearing Free Size. Drapes with fluid elegance; includes 5.5m saree + 0.8m unstitched matching blouse piece.",
     supplier_links: {
       top: "https://www.meesho.com/s/p/royal-chanderi-silk-saree",
       bottom: ""
@@ -77,6 +105,9 @@ const DEFAULT_PRODUCTS = [
     featured: true,
     cod_available: true,
     is_combo: false,
+    is_published: true,
+    status: "active",
+    size_fit_guidance: "Model is 6'0\" (Chest 40\") wearing Size L. Tailored comfort fit. Opt for one size up for a relaxed traditional drape.",
     supplier_links: {
       top: "https://www.meesho.com/s/p/embroidered-silk-kurta",
       bottom: "https://www.meesho.com/s/p/mens-churidar"
@@ -113,6 +144,9 @@ const DEFAULT_PRODUCTS = [
     featured: true,
     cod_available: false,
     is_combo: true,
+    is_published: true,
+    status: "active",
+    size_fit_guidance: "Men: Model is 6'0\" wearing Size L. Women: Model is 5'7\" wearing Free Size Saree with 0.8m unstitched blouse piece.",
     supplier_links: {
       male_top: "https://www.meesho.com/s/p/mens-silk-kurta-maroon",
       male_bottom: "https://www.meesho.com/s/p/mens-silk-pyjama",
@@ -157,6 +191,9 @@ const DEFAULT_PRODUCTS = [
     featured: false,
     cod_available: true,
     is_combo: false,
+    is_published: true,
+    status: "active",
+    size_fit_guidance: "Relaxed regular fit designed for easy movement. Pre-stitched dhoti with elastic waistband.",
     supplier_links: {
       top: "https://www.meesho.com/s/p/boys-handloom-kurta",
       bottom: "https://www.meesho.com/s/p/boys-pre-stitched-dhoti"
@@ -193,6 +230,9 @@ const DEFAULT_PRODUCTS = [
     featured: false,
     cod_available: false,
     is_combo: false,
+    is_published: true,
+    status: "active",
+    size_fit_guidance: "Model is 5'9\" wearing Size L. Relaxed comfort fit with extra chest ease for all-day convenience.",
     supplier_links: {
       top: "https://www.meesho.com/s/p/organic-cotton-kurta",
       bottom: ""
@@ -262,6 +302,13 @@ export function initGallery(containerId) {
   function render() {
     const editMode = isLiveEditActive();
 
+    // Storefront Customer Protection:
+    // If NOT in Admin Visual Live Edit Mode, render ONLY published products (is_published !== false && status !== "draft").
+    // In Visual Live Edit Mode, render draft products with an amber DRAFT indicator tag.
+    const visibleProducts = editMode 
+      ? products 
+      : products.filter(p => p.is_published !== false && p.status !== "draft");
+
     // Filter logic with Featured Fallback
     const catLower = activeCategory.toLowerCase();
     const queryLower = searchQuery.toLowerCase().trim();
@@ -269,13 +316,13 @@ export function initGallery(containerId) {
     // Determine category matching products
     let categoryFiltered = [];
     if (catLower === "featured") {
-      const featuredList = products.filter(p => p.featured === true);
-      // Graceful fallback: If no products are explicitly flagged as featured, show all products
-      categoryFiltered = featuredList.length > 0 ? featuredList : products;
+      const featuredList = visibleProducts.filter(p => p.featured === true);
+      // Graceful fallback: If no products are explicitly flagged as featured, show all visible products
+      categoryFiltered = featuredList.length > 0 ? featuredList : visibleProducts;
     } else if (catLower === "all" || catLower === "all festive") {
-      categoryFiltered = products;
+      categoryFiltered = visibleProducts;
     } else {
-      categoryFiltered = products.filter(p => (p.category && p.category.toLowerCase() === catLower));
+      categoryFiltered = visibleProducts.filter(p => (p.category && p.category.toLowerCase() === catLower));
     }
 
     // Apply live search filtering
@@ -299,7 +346,7 @@ export function initGallery(containerId) {
             <div class="h-[1.5px] w-12 bg-[#C5A880] mx-auto mt-4"></div>
             <p class="text-xs text-[#5A5A5A] uppercase tracking-widest font-light leading-relaxed">
               ${editMode 
-                ? `<span class="text-amber-700 font-semibold">🛠️ Visual Live Edit Active: Drag cards to reorder &bull; Use on-card buttons to edit, toggle stock or delete</span>`
+                ? `<span class="text-amber-700 font-semibold">🛠️ Visual Live Edit Active: Drag cards to reorder &bull; Draft products flagged in amber &bull; Edit, toggle stock or delete</span>`
                 : `Haute Couture & Festive Apparel &bull; 100% Authentic Handcrafted Quality`}
             </p>
           </div>
@@ -320,11 +367,16 @@ export function initGallery(containerId) {
                 const hasMultipleImages = product.images && product.images.length > 0;
                 const mainImage = hasMultipleImages ? product.images[0] : (product.image || "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80");
                 const isFeatured = product.featured === true;
+                const isDraft = product.is_published === false || product.status === "draft";
                 const reviewCount = (product.reviews && product.reviews.length) || 0;
                 
                 return `
                   <div 
-                    class="group bg-white rounded-2xl border ${editMode ? 'border-[#C5A880]/60 ring-1 ring-[#C5A880]/30 shadow-sm cursor-grab active:cursor-grabbing' : 'border-[#E5E3DF]'} p-3 sm:p-4 hover:shadow-md transition-all duration-300 flex flex-col justify-between relative product-card" 
+                    class="group bg-white rounded-2xl border ${
+                      editMode 
+                        ? (isDraft ? 'border-amber-400 ring-2 ring-amber-300/60 shadow-sm cursor-grab active:cursor-grabbing' : 'border-[#C5A880]/60 ring-1 ring-[#C5A880]/30 shadow-sm cursor-grab active:cursor-grabbing') 
+                        : 'border-[#E5E3DF]'
+                    } p-3 sm:p-4 hover:shadow-md transition-all duration-300 flex flex-col justify-between relative product-card" 
                     data-product-id="${product.id}"
                     draggable="${editMode ? 'true' : 'false'}"
                   >
@@ -403,6 +455,11 @@ export function initGallery(containerId) {
                       
                       <!-- Non-Obstructive Bottom-Left Micro-Pill Badges (Keeping model faces completely clear) -->
                       <div class="absolute bottom-2.5 left-2.5 flex flex-wrap items-center gap-[4px] z-10 pointer-events-none max-w-[85%] transition-all">
+                        ${isDraft && editMode ? `
+                          <span style="background: rgba(217, 119, 6, 0.92); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); color: #FFF; border: 1px solid rgba(251, 191, 36, 0.7); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; padding: 4px 10px; border-radius: 9999px; font-weight: 700; line-height: 1; display: inline-flex; align-items: center; gap: 3px;">
+                            📦 DRAFT
+                          </span>
+                        ` : ''}
                         <span style="background: rgba(18, 16, 14, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); color: #E5D5BA; border: 1px solid rgba(229, 213, 186, 0.35); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; padding: 4px 10px; border-radius: 9999px; font-weight: 500; line-height: 1;">
                           ${product.category}
                         </span>
@@ -1271,15 +1328,22 @@ export function showQuickEditModal(product, onSaveCallback) {
             <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">Fabric & Care Composition</label>
             <input type="text" id="qe-fabric" value="${(product.fabricDetails || '').replace(/"/g, '&quot;')}" class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-2.5 text-xs rounded-xl focus:outline-none focus:border-[#C5A880]" />
           </div>
+          <div>
+            <label class="block text-[9px] uppercase tracking-wider text-[#5A5A5A] font-bold mb-1">Size &amp; Fit Guidance (Optional)</label>
+            <textarea id="qe-size-fit-guidance" rows="2" placeholder="e.g., Model is 5'10&quot; wearing Size L. Tailored comfort fit. Opt for one size up for a relaxed traditional drape." class="w-full bg-[#F9F8F6] border border-[#E5E3DF] px-3.5 py-2 text-xs rounded-xl focus:outline-none focus:border-[#C5A880] resize-none">${(product.size_fit_guidance || '').replace(/</g, '&lt;')}</textarea>
+          </div>
         </div>
 
-        <!-- Action CTAs -->
-        <div class="grid grid-cols-2 gap-3 pt-4 border-t border-[#E5E3DF]">
-          <button type="button" id="qe-cancel-btn" class="py-3 border border-[#E5E3DF] text-[#5A5A5A] hover:bg-stone-50 text-xs uppercase tracking-widest font-semibold rounded-xl transition-all focus:outline-none min-h-[44px]">
+        <!-- Two-Stage Action CTAs -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-4 border-t border-[#E5E3DF]">
+          <button type="button" id="qe-cancel-btn" class="py-3 border border-[#E5E3DF] text-[#5A5A5A] hover:bg-stone-50 text-xs uppercase tracking-widest font-semibold rounded-xl transition-all focus:outline-none min-h-[44px] cursor-pointer">
             Discard
           </button>
-          <button type="submit" id="qe-save-btn" class="py-3 bg-[#1A1A1A] hover:bg-[#C5A880] hover:text-[#1A1A1A] text-white text-xs uppercase tracking-widest font-semibold rounded-xl transition-all duration-300 shadow-md focus:outline-none min-h-[44px]">
-            Save to Firestore
+          <button type="button" id="qe-draft-btn" class="py-3 bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 text-xs uppercase tracking-widest font-bold transition-all rounded-xl focus:outline-none min-h-[44px] shadow-xs flex items-center justify-center gap-1 cursor-pointer">
+            <span>📦 Store (Save Draft)</span>
+          </button>
+          <button type="button" id="qe-publish-btn" class="py-3 bg-[#1A1A1A] hover:bg-[#C5A880] hover:text-[#1A1A1A] text-white text-xs uppercase tracking-widest font-bold transition-all duration-300 rounded-xl focus:outline-none shadow-md min-h-[44px] flex items-center justify-center gap-1 cursor-pointer">
+            <span>🚀 Push to Store (Publish Live)</span>
           </button>
         </div>
       </form>
@@ -1830,113 +1894,152 @@ export function showQuickEditModal(product, onSaveCallback) {
 
   renderGalleryThumbnailStrip();
 
-  // Submit Changes and Save to Firestore
-  const form = modal.querySelector('#quick-edit-form');
-  if (form) {
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const title = modal.querySelector('#qe-title').value.trim();
-      const category = modal.querySelector('#qe-category').value;
-      const badge = modal.querySelector('#qe-badge').value.trim();
-      const supplierCost = parseInt(modal.querySelector('#qe-supplier-cost').value) || 0;
-      const targetProfit = parseInt(modal.querySelector('#qe-target-profit').value) || 200;
-      const rtoBuffer = parseInt(modal.querySelector('#qe-rto-buffer').value) || 100;
-      const price = parseInt(modal.querySelector('#qe-price').value);
-      const originalPrice = parseInt(modal.querySelector('#qe-mrp').value);
-      const description = modal.querySelector('#qe-desc').value.trim();
-      const fabricDetails = modal.querySelector('#qe-fabric').value.trim();
+  // Submit Changes and Save to Firestore (Two-Stage: Draft vs. Publish)
+  async function handleQuickEditSave(isPublished) {
+    const title = modal.querySelector('#qe-title').value.trim();
+    const category = modal.querySelector('#qe-category').value;
+    const badge = modal.querySelector('#qe-badge').value.trim();
+    const supplierCost = parseInt(modal.querySelector('#qe-supplier-cost').value) || 0;
+    const targetProfit = parseInt(modal.querySelector('#qe-target-profit').value) || 200;
+    const rtoBuffer = parseInt(modal.querySelector('#qe-rto-buffer').value) || 100;
+    const price = parseInt(modal.querySelector('#qe-price').value);
+    const originalPrice = parseInt(modal.querySelector('#qe-mrp').value);
+    const description = modal.querySelector('#qe-desc').value.trim();
+    const fabricDetails = modal.querySelector('#qe-fabric').value.trim();
+    const size_fit_guidance = modal.querySelector('#qe-size-fit-guidance')?.value.trim() || '';
 
-      const isTwin = modal.querySelector('#qe-type-twin')?.checked === true;
-      let finalSizes = [];
-      let finalComboSizes = null;
+    if (!title) {
+      showGalleryToast("⚠️ Please enter a product title!", true);
+      return;
+    }
 
-      if (isTwin) {
-        if (
-          modalComboSizes.men_top.size === 0 ||
-          modalComboSizes.men_bottom.size === 0 ||
-          modalComboSizes.women_top.size === 0 ||
-          modalComboSizes.women_bottom.size === 0
-        ) {
-          alert("⚠️ Please select at least one active size in stock for all 4 categories (Men's Top, Men's Bottom, Women's Top, Women's Bottom) in the Twin Combo sizing matrix!");
-          return;
-        }
-        finalComboSizes = {
-          men_top: Array.from(modalComboSizes.men_top),
-          men_bottom: Array.from(modalComboSizes.men_bottom),
-          women_top: Array.from(modalComboSizes.women_top),
-          women_bottom: Array.from(modalComboSizes.women_bottom)
-        };
-        finalSizes = ["Custom 4-Piece Combo"];
-      } else {
-        if (modalSelectedSizes.size === 0) {
-          alert("⚠️ Please select at least one size tag!");
-          return;
-        }
-        finalSizes = Array.from(modalSelectedSizes);
+    const isTwin = modal.querySelector('#qe-type-twin')?.checked === true;
+    let finalSizes = [];
+    let finalComboSizes = null;
+
+    if (isTwin) {
+      if (
+        modalComboSizes.men_top.size === 0 ||
+        modalComboSizes.men_bottom.size === 0 ||
+        modalComboSizes.women_top.size === 0 ||
+        modalComboSizes.women_bottom.size === 0
+      ) {
+        showGalleryToast("⚠️ Please select at least one active size in stock for all 4 categories in Twin Combo!", true);
+        return;
       }
-
-      let finalMainImage = mainImageChoice;
-      if (mainImageMode === "upload" && uploadedModalMainImage) {
-        finalMainImage = uploadedModalMainImage;
-      } else if (mainImageMode === "url") {
-        const urlVal = urlInput.value.trim();
-        if (urlVal) finalMainImage = urlVal;
-      }
-
-      const finalImages = [finalMainImage, ...galleryImages];
-      const discountPercentage = Math.round(((originalPrice - price) / originalPrice) * 100);
-
-      let supplier_links = {};
-      if (isTwin) {
-        supplier_links = {
-          male_top: modal.querySelector('#qe-supplier-male-top')?.value.trim() || '',
-          male_bottom: modal.querySelector('#qe-supplier-male-bottom')?.value.trim() || '',
-          female_top: modal.querySelector('#qe-supplier-female-top')?.value.trim() || '',
-          female_bottom: modal.querySelector('#qe-supplier-female-bottom')?.value.trim() || ''
-        };
-      } else {
-        supplier_links = {
-          top: modal.querySelector('#qe-supplier-top')?.value.trim() || '',
-          bottom: modal.querySelector('#qe-supplier-bottom')?.value.trim() || ''
-        };
-      }
-
-      const updatedProduct = {
-        ...product,
-        title,
-        category,
-        is_combo: isTwin,
-        combo_sizes: finalComboSizes,
-        supplier_links,
-        supplierCost,
-        targetProfit,
-        rtoBuffer,
-        price,
-        originalPrice,
-        discountPercentage,
-        badge: badge || null,
-        featured: isFeaturedChoice,
-        cod_available: isCodAvailableChoice,
-        description,
-        fabricDetails,
-        sizes: finalSizes,
-        images: finalImages,
-        image: finalMainImage
+      finalComboSizes = {
+        men_top: Array.from(modalComboSizes.men_top),
+        men_bottom: Array.from(modalComboSizes.men_bottom),
+        women_top: Array.from(modalComboSizes.women_top),
+        women_bottom: Array.from(modalComboSizes.women_bottom)
       };
-
-      const saveBtn = modal.querySelector('#qe-save-btn');
-      if (saveBtn) {
-        saveBtn.innerText = "Saving to Firestore Cloud...";
-        saveBtn.disabled = true;
+      finalSizes = ["Custom 4-Piece Combo"];
+    } else {
+      if (modalSelectedSizes.size === 0) {
+        showGalleryToast("⚠️ Please select at least one size tag!", true);
+        return;
       }
+      finalSizes = Array.from(modalSelectedSizes);
+    }
 
-      await saveProductToCloud(updatedProduct);
+    let finalMainImage = mainImageChoice;
+    if (mainImageMode === "upload" && uploadedModalMainImage) {
+      finalMainImage = uploadedModalMainImage;
+    } else if (mainImageMode === "url") {
+      const urlVal = urlInput.value.trim();
+      if (urlVal) finalMainImage = urlVal;
+    }
 
-      closeModal();
+    const finalImages = [finalMainImage, ...galleryImages];
+    const discountPercentage = Math.round(((originalPrice - price) / originalPrice) * 100);
 
-      if (typeof onSaveCallback === "function") {
-        onSaveCallback(updatedProduct);
-      }
+    let supplier_links = {};
+    if (isTwin) {
+      supplier_links = {
+        male_top: modal.querySelector('#qe-supplier-male-top')?.value.trim() || '',
+        male_bottom: modal.querySelector('#qe-supplier-male-bottom')?.value.trim() || '',
+        female_top: modal.querySelector('#qe-supplier-female-top')?.value.trim() || '',
+        female_bottom: modal.querySelector('#qe-supplier-female-bottom')?.value.trim() || ''
+      };
+    } else {
+      supplier_links = {
+        top: modal.querySelector('#qe-supplier-top')?.value.trim() || '',
+        bottom: modal.querySelector('#qe-supplier-bottom')?.value.trim() || ''
+      };
+    }
+
+    const updatedProduct = {
+      ...product,
+      title,
+      category,
+      is_combo: isTwin,
+      combo_sizes: finalComboSizes,
+      supplier_links,
+      supplierCost,
+      targetProfit,
+      rtoBuffer,
+      price,
+      originalPrice,
+      discountPercentage,
+      badge: badge || null,
+      featured: isFeaturedChoice,
+      cod_available: isCodAvailableChoice,
+      description,
+      fabricDetails,
+      size_fit_guidance,
+      sizes: finalSizes,
+      images: finalImages,
+      image: finalMainImage,
+      is_published: isPublished,
+      status: isPublished ? "active" : "draft"
+    };
+
+    const draftBtn = modal.querySelector('#qe-draft-btn');
+    const publishBtn = modal.querySelector('#qe-publish-btn');
+    if (draftBtn) draftBtn.disabled = true;
+    if (publishBtn) publishBtn.disabled = true;
+
+    if (isPublished && publishBtn) {
+      publishBtn.innerText = "Publishing...";
+    } else if (!isPublished && draftBtn) {
+      draftBtn.innerText = "Saving Draft...";
+    }
+
+    await saveProductToCloud(updatedProduct);
+
+    if (isPublished) {
+      showGalleryToast("Product pushed live to storefront!");
+    } else {
+      showGalleryToast("Product stored as draft (not visible on storefront)");
+    }
+
+    closeModal();
+
+    if (typeof onSaveCallback === "function") {
+      onSaveCallback(updatedProduct);
+    }
+  }
+
+  const draftBtn = modal.querySelector('#qe-draft-btn');
+  const publishBtn = modal.querySelector('#qe-publish-btn');
+  const form = modal.querySelector('#quick-edit-form');
+
+  if (draftBtn) {
+    draftBtn.addEventListener('click', () => {
+      handleQuickEditSave(false);
+    });
+  }
+
+  if (publishBtn) {
+    publishBtn.addEventListener('click', () => {
+      handleQuickEditSave(true);
+    });
+  }
+
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      handleQuickEditSave(true);
     });
   }
 }
@@ -2241,11 +2344,17 @@ export function showQuickViewModal(product) {
                 <span class="accordion-arrow text-stone-400 font-normal transition-transform duration-200">▼</span>
               </button>
               <div id="acc-size-fit" class="hidden px-4 pb-3.5 pt-1 text-xs text-[#5A5A5A] space-y-2 border-t border-[#E5E3DF]/50 bg-[#FAF9F7]">
-                <p class="font-light leading-relaxed">Designed in classic Indian festive cuts with comfortable ease for day-long celebrations:</p>
-                <div class="grid grid-cols-2 gap-2 text-[10px] bg-white p-2.5 rounded-lg border border-[#E5E3DF]">
-                  <div><strong>Kurtas:</strong> Chest S=38", M=40", L=42", XL=44", XXL=46"</div>
-                  <div><strong>Sarees:</strong> 5.5m + 0.8m unstitched blouse</div>
-                </div>
+                ${product.size_fit_guidance ? `
+                  <div class="p-3 bg-white rounded-xl border border-[#E5E3DF] text-xs leading-relaxed text-[#1A1A1A] whitespace-pre-line font-medium">
+                    ${product.size_fit_guidance.replace(/</g, '&lt;')}
+                  </div>
+                ` : `
+                  <p class="font-light leading-relaxed">Designed in classic Indian festive cuts with comfortable ease for day-long celebrations:</p>
+                  <div class="grid grid-cols-2 gap-2 text-[10px] bg-white p-2.5 rounded-lg border border-[#E5E3DF]">
+                    <div><strong>Kurtas:</strong> Chest S=38", M=40", L=42", XL=44", XXL=46"</div>
+                    <div><strong>Sarees:</strong> 5.5m + 0.8m unstitched blouse</div>
+                  </div>
+                `}
               </div>
             </div>
 
